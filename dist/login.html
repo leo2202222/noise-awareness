@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <script>location.replace('./auth.html');</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Sign in to Noise Awareness System">
+  <title>Sign in · Noise Awareness System</title>
+  <style>
+    :root{--bg:#eef6f9;--paper:rgba(252,254,255,.88);--ink:#344b5b;--muted:#70828d;--blue:#5d87a1;--blue-dark:#4d768f;--line:rgba(67,100,120,.14);--danger:#a65b65;--danger-bg:#f7e5e7;--shadow:0 22px 60px rgba(54,82,99,.12)}
+    *{box-sizing:border-box}html{font-family:Inter,"Noto Sans Thai","Leelawadee UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}body{margin:0;min-width:320px;min-height:100vh;background:radial-gradient(circle at 9% 8%,rgba(205,231,242,.82),transparent 31%),radial-gradient(circle at 91% 12%,rgba(203,228,236,.65),transparent 32%),radial-gradient(circle at 70% 92%,rgba(218,237,230,.6),transparent 34%),linear-gradient(145deg,#f6fafc,#edf5f8 55%,#edf5f2)}button,input{font:inherit}.page{min-height:100vh;display:grid;grid-template-columns:minmax(360px,.9fr) minmax(480px,1.1fr);padding:24px}.intro{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:42px;border:1px solid rgba(255,255,255,.72);border-radius:30px;background:linear-gradient(155deg,rgba(211,234,244,.9),rgba(204,229,238,.72) 50%,rgba(210,235,228,.74));box-shadow:var(--shadow)}.brand{display:flex;align-items:center;gap:13px}.logo{width:48px;height:48px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(145deg,#fff,#cce7f2);color:var(--blue);box-shadow:0 10px 22px rgba(54,82,99,.09)}.logo svg{width:28px}.brand strong{display:block;font-size:16px}.brand span{display:block;margin-top:3px;color:#627d8d;font-size:12px}.welcome{max-width:510px;margin:auto 0}.eyebrow{margin:0 0 12px;color:#587c91;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}.welcome h1{max-width:470px;margin:0;font-size:clamp(36px,5vw,62px);line-height:1.02;letter-spacing:-.055em}.welcome p{max-width:470px;margin:20px 0 0;color:#607a89;font-size:15px;line-height:1.75}.privacy{display:flex;align-items:flex-start;gap:10px;max-width:440px;color:#617b89;font-size:12px;line-height:1.55}.privacy svg{width:18px;flex:none;margin-top:1px}.mimi{position:absolute;right:42px;bottom:40px;width:92px;height:92px;display:grid;place-items:center;border:2px solid rgba(255,255,255,.85);border-radius:32px;background:linear-gradient(145deg,#fff1ba,#f7d7dc 58%,#cce9f5);font-size:54px;box-shadow:0 18px 34px rgba(64,91,106,.13),inset 0 3px 3px rgba(255,255,255,.8);animation:float 3.4s ease-in-out infinite}.mimi:after{content:"";position:absolute;bottom:-13px;width:46px;height:9px;border-radius:50%;background:rgba(45,72,86,.11);filter:blur(4px)}@keyframes float{0%,100%{transform:translateY(0) rotate(2deg)}50%{transform:translateY(-5px) rotate(-1deg)}}.login-side{display:grid;place-items:center;padding:42px}.card{width:min(440px,100%);padding:38px;border:1px solid rgba(255,255,255,.82);border-radius:28px;background:var(--paper);box-shadow:var(--shadow);backdrop-filter:blur(18px)}.card h2{margin:0;font-size:30px;letter-spacing:-.035em}.card>.copy{margin:9px 0 28px;color:var(--muted);font-size:14px;line-height:1.55}.field{margin-top:17px}.field label{display:block;margin:0 0 8px;color:#506b7a;font-size:12px;font-weight:750}.control{position:relative}.control input{width:100%;min-height:50px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.82);color:var(--ink);outline:none;transition:border-color .18s,box-shadow .18s}.control input:focus{border-color:#77a3ba;box-shadow:0 0 0 4px rgba(100,151,178,.14)}.control input[aria-invalid="true"]{border-color:#bf7980}.password input{padding-right:52px}.reveal{position:absolute;right:7px;top:7px;width:36px;height:36px;border:0;border-radius:10px;background:transparent;color:#628297;cursor:pointer}.reveal:hover{background:#eaf3f7}.error{min-height:18px;margin:6px 0 0;color:var(--danger);font-size:11px}.form-error{display:none;margin:18px 0 0;padding:12px 14px;border:1px solid rgba(166,91,101,.15);border-radius:12px;background:var(--danger-bg);color:#87515a;font-size:12px;line-height:1.5}.form-error.show{display:block}.options{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:17px 0 22px;color:var(--muted);font-size:12px}.remember{display:flex;align-items:center;gap:8px}.remember input{width:16px;height:16px;accent-color:var(--blue)}.submit{width:100%;min-height:50px;border:0;border-radius:14px;background:var(--blue);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 10px 22px rgba(63,109,136,.16);transition:background .18s,transform .18s}.submit:hover{background:var(--blue-dark);transform:translateY(-1px)}.submit:active{transform:none}.submit:disabled{opacity:.62;cursor:wait;transform:none}.back{display:block;margin-top:20px;color:#57798d;text-align:center;font-size:12px;text-decoration:none}.back:hover{text-decoration:underline}:focus-visible{outline:3px solid rgba(83,132,160,.28);outline-offset:3px}.language{position:absolute;top:24px;right:26px;border:1px solid rgba(67,100,120,.13);border-radius:999px;background:rgba(255,255,255,.58);padding:7px 11px;color:#577589;font-size:11px;font-weight:750;cursor:pointer}
+    @media(max-width:900px){.page{grid-template-columns:1fr;padding:14px}.intro{min-height:260px;padding:28px;border-radius:25px}.welcome{margin:45px 0 20px}.welcome h1{font-size:38px}.welcome p{margin-top:12px}.privacy{display:none}.mimi{right:28px;bottom:24px;width:68px;height:68px;border-radius:24px;font-size:40px}.login-side{padding:26px 8px}.card{padding:30px}}
+    @media(max-width:520px){.intro{min-height:220px}.welcome h1{font-size:31px;max-width:280px}.welcome p{max-width:270px;font-size:13px}.mimi{width:58px;height:58px;font-size:34px}.card{padding:26px 20px;border-radius:23px}.options{align-items:flex-start;flex-direction:column;gap:10px}}
+    @media(prefers-reduced-motion:reduce){.mimi{animation:none}.submit{transition:none}}
+  </style>
+  <style id="minimal-login-theme">
+    body {
+      background:
+        radial-gradient(circle at 50% 0%,rgba(207,231,241,.62),transparent 38%),
+        linear-gradient(160deg,#f6fafc,#edf5f8 58%,#eef5f2);
+    }
+    .page {
+      width: 100%;
+      max-width: 500px;
+      min-height: 100vh;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+      padding: 28px;
+    }
+    .intro {
+      position: relative;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
+    }
+    .brand { gap: 11px; }
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      box-shadow: none;
+    }
+    .welcome, .privacy { display: none; }
+    .mimi {
+      position: static;
+      width: 48px;
+      height: 48px;
+      margin-right: 72px;
+      border-radius: 17px;
+      font-size: 29px;
+      box-shadow: 0 8px 18px rgba(64,91,106,.09),inset 0 2px 2px rgba(255,255,255,.8);
+      animation: minimal-float 3.8s ease-in-out infinite;
+    }
+    .mimi::after { display: none; }
+    @keyframes minimal-float { 0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)} }
+    .language {
+      top: 6px;
+      right: 0;
+      min-height: 36px;
+      padding: 6px 10px;
+      background: rgba(252,254,255,.7);
+    }
+    .login-side { width: 100%; display: block; padding: 0; }
+    .card {
+      width: 100%;
+      padding: 34px;
+      border: 1px solid rgba(76,112,132,.12);
+      border-radius: 24px;
+      background: rgba(252,254,255,.86);
+      box-shadow: 0 18px 48px rgba(54,82,99,.085);
+      backdrop-filter: blur(16px);
+    }
+    .card h2 { font-size: 27px; }
+    .card > .copy { margin-bottom: 24px; }
+    .submit { box-shadow: none; }
+    .back { display: none; }
+
+    @media(max-width:520px){
+      .page{padding:20px;gap:14px}.card{padding:28px 22px}.mimi{margin-right:64px}.brand span{font-size:11px}
+    }
+  </style>
+  <style id="minimal-login-polish">
+    .page::before,.page::after{content:"";position:fixed;z-index:-1;border-radius:50%;filter:blur(2px);pointer-events:none}.page::before{width:250px;height:250px;left:-110px;top:-100px;background:rgba(181,218,233,.25)}.page::after{width:220px;height:220px;right:-90px;bottom:-100px;background:rgba(201,228,220,.22)}
+    .intro{padding-inline:8px}.brand strong{color:#37566a;letter-spacing:-.015em}.brand span{color:#78909d}.language{border-color:rgba(75,114,137,.12);box-shadow:none;transition:background .18s,color .18s}.language:hover{background:#fff;color:#41677e}
+    .card{position:relative;overflow:hidden}.card::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#a9cfdf,#7fabbe,#b7d9d0);opacity:.72}.card h2{color:#344f60;font-weight:780}.card>.copy{max-width:310px;line-height:1.65}
+    .field label{color:#557181;font-weight:720}.control input{background:rgba(250,253,255,.92);border-color:rgba(72,110,132,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}.control input:hover{border-color:rgba(83,132,160,.28)}.control input::placeholder{color:#9babb4}
+    .reveal{display:grid;place-items:center;font-size:13px}.options{margin-top:15px;margin-bottom:20px}.remember{cursor:pointer}.remember input{margin:0}
+    .submit{display:flex;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,#6996b0,#56839d);box-shadow:0 9px 21px rgba(62,110,137,.13)}.submit:hover{background:linear-gradient(135deg,#5f8da7,#4d7891);box-shadow:0 12px 24px rgba(62,110,137,.17)}.submit span:last-child{font-size:17px;transition:transform .18s}.submit:hover span:last-child{transform:translateX(3px)}
+    .secure-note{display:flex;align-items:center;justify-content:center;gap:7px;margin:17px 0 0;color:#83959e;font-size:10px;text-align:center}.secure-note>span:first-child{color:#69aa91;font-size:8px;box-shadow:0 0 0 4px rgba(105,170,145,.09);border-radius:50%}
+    .form-error.show{animation:error-in .22s ease-out}@keyframes error-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+    @media(max-width:520px){.card::before{height:2px}.secure-note{font-size:9px}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="intro" aria-labelledby="welcome-title">
+      <button class="language" type="button" id="languageButton" aria-label="Switch language">ไทย</button>
+      <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 13h4l2-7 4 13 4-16 3 10h3"/></svg></span><div><strong>Noise Awareness</strong><span data-i18n="system">Monitoring system</span></div></div>
+      <div class="welcome"><p class="eyebrow" data-i18n="eyebrow">A calmer space starts here</p><h1 id="welcome-title" data-i18n="title">Welcome back.</h1><p data-i18n="intro">Sign in to review environmental sound activity, device status, and alerts for your monitored areas.</p></div>
+      <div class="privacy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 20 6v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3Z"/></svg><span data-i18n="privacy">Privacy-first analysis. Conversations are never recorded, stored, or played.</span></div>
+      <div class="mimi" role="img" aria-label="Mimi mascot">🐰</div>
+    </section>
+    <section class="login-side">
+      <form class="card" id="loginForm" novalidate>
+        <h2 data-i18n="signin">Sign in</h2>
+        <p class="copy" data-i18n="copy">Use your monitoring system account to continue.</p>
+        <div class="field"><label for="email" data-i18n="email">Email address</label><div class="control"><input id="email" name="email" type="email" autocomplete="username" inputmode="email" required aria-describedby="emailError"></div><p class="error" id="emailError"></p></div>
+        <div class="field"><label for="password" data-i18n="password">Password</label><div class="control password"><input id="password" name="password" type="password" autocomplete="current-password" minlength="8" required aria-describedby="passwordError"><button class="reveal" id="revealPassword" type="button" aria-label="Show password">◉</button></div><p class="error" id="passwordError"></p></div>
+        <div class="options"><label class="remember"><input id="rememberEmail" type="checkbox"><span data-i18n="remember">Remember my email</span></label></div>
+        <div class="form-error" id="formError" role="alert"></div>
+        <button class="submit" id="submitButton" type="submit"><span data-i18n="continue">Continue</span><span aria-hidden="true">→</span></button>
+        <p class="secure-note"><span aria-hidden="true">●</span><span data-i18n="secure">Secure session · Privacy-first monitoring</span></p>
+        <a class="back" href="./index.html" data-i18n="back">Return to monitoring overview</a>
+      </form>
+    </section>
+  </main>
+  <script>
+    const dictionary={en:{system:'Monitoring system',eyebrow:'A calmer space starts here',title:'Welcome back.',intro:'Sign in to review environmental sound activity, device status, and alerts for your monitored areas.',privacy:'Privacy-first analysis. Conversations are never recorded, stored, or played.',signin:'Sign in',copy:'Use your monitoring system account to continue.',email:'Email address',password:'Password',remember:'Remember my email',continue:'Continue',secure:'Secure session · Privacy-first monitoring',back:'Return to monitoring overview',requiredEmail:'Enter your email address.',invalidEmail:'Enter a valid email address.',requiredPassword:'Enter your password.',shortPassword:'Password must contain at least 8 characters.',connecting:'Signing in…',failed:'Unable to sign in. Check your details and try again.',unavailable:'The sign-in service is currently unavailable. Please try again.',show:'Show password',hide:'Hide password'},th:{system:'ระบบตรวจสอบเสียง',eyebrow:'พื้นที่สงบเริ่มต้นที่นี่',title:'ยินดีต้อนรับกลับ',intro:'เข้าสู่ระบบเพื่อตรวจสอบกิจกรรมเสียง สถานะอุปกรณ์ และการแจ้งเตือนในพื้นที่ของคุณ',privacy:'วิเคราะห์โดยคำนึงถึงความเป็นส่วนตัว ระบบไม่บันทึก จัดเก็บ หรือเล่นบทสนทนา',signin:'เข้าสู่ระบบ',copy:'ใช้บัญชีระบบตรวจสอบเพื่อดำเนินการต่อ',email:'อีเมล',password:'รหัสผ่าน',remember:'จดจำอีเมลของฉัน',continue:'ดำเนินการต่อ',secure:'เซสชันปลอดภัย · เคารพความเป็นส่วนตัว',back:'กลับไปหน้าภาพรวม',requiredEmail:'กรุณากรอกอีเมล',invalidEmail:'กรุณากรอกอีเมลให้ถูกต้อง',requiredPassword:'กรุณากรอกรหัสผ่าน',shortPassword:'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร',connecting:'กำลังเข้าสู่ระบบ…',failed:'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลแล้วลองอีกครั้ง',unavailable:'ไม่สามารถเชื่อมต่อบริการเข้าสู่ระบบได้ กรุณาลองใหม่',show:'แสดงรหัสผ่าน',hide:'ซ่อนรหัสผ่าน'}};
+    let language=localStorage.getItem('noise-language')||'en';const $=id=>document.getElementById(id),text=key=>dictionary[language][key];
+    function applyLanguage(){document.documentElement.lang=language;document.querySelectorAll('[data-i18n]').forEach(element=>element.textContent=text(element.dataset.i18n));$('languageButton').textContent=language==='en'?'ไทย':'English';$('revealPassword').setAttribute('aria-label',text($('password').type==='password'?'show':'hide'));document.title=language==='th'?'เข้าสู่ระบบ · Noise Awareness System':'Sign in · Noise Awareness System'}
+    $('languageButton').addEventListener('click',()=>{language=language==='en'?'th':'en';localStorage.setItem('noise-language',language);applyLanguage()});
+    $('revealPassword').addEventListener('click',()=>{let input=$('password'),hidden=input.type==='password';input.type=hidden?'text':'password';$('revealPassword').setAttribute('aria-label',text(hidden?'hide':'show'));input.focus()});
+    let remembered=localStorage.getItem('noise-remembered-email');if(remembered){$('email').value=remembered;$('rememberEmail').checked=true}
+    function validate(){let valid=true,email=$('email'),password=$('password');$('emailError').textContent='';$('passwordError').textContent='';email.removeAttribute('aria-invalid');password.removeAttribute('aria-invalid');if(!email.value.trim()){valid=false;$('emailError').textContent=text('requiredEmail');email.setAttribute('aria-invalid','true')}else if(!email.validity.valid){valid=false;$('emailError').textContent=text('invalidEmail');email.setAttribute('aria-invalid','true')}if(!password.value){valid=false;$('passwordError').textContent=text('requiredPassword');password.setAttribute('aria-invalid','true')}else if(password.value.length<8){valid=false;$('passwordError').textContent=text('shortPassword');password.setAttribute('aria-invalid','true')}return valid}
+    function setSubmitButton(loading){let button=$('submitButton');button.replaceChildren();let label=document.createElement('span'),arrow=document.createElement('span'),key=loading?'connecting':'continue';label.textContent=text(key);label.dataset.i18n=key;arrow.textContent=loading?'…':'→';arrow.setAttribute('aria-hidden','true');button.append(label,arrow)}
+    $('loginForm').addEventListener('submit',async event=>{event.preventDefault();$('formError').classList.remove('show');if(!validate())return;let button=$('submitButton');button.disabled=true;setSubmitButton(true);try{let response=await fetch('/api/auth/login',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});if(!response.ok)throw new Error(response.status===401?'credentials':'service');if($('rememberEmail').checked)localStorage.setItem('noise-remembered-email',$('email').value.trim());else localStorage.removeItem('noise-remembered-email');location.replace('./index.html')}catch(error){$('formError').textContent=text(error.message==='credentials'?'failed':'unavailable');$('formError').classList.add('show');button.disabled=false;setSubmitButton(false)}});
+    async function checkExistingSession(){try{let response=await fetch('/api/auth/session',{credentials:'include',headers:{Accept:'application/json'}});if(response.ok)location.replace('./index.html')}catch(error){/* Keep the form available while the service is unreachable. */}}
+    applyLanguage();checkExistingSession();
+  </script>
+</body>
+</html>

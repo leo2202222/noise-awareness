@@ -1,0 +1,153 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Noise Awareness account access">
+  <title>Account · Noise Awareness</title>
+  <style>
+    :root{--bg:#eef6f9;--surface:rgba(253,254,255,.92);--ink:#344e60;--muted:#718590;--blue:#5f8da8;--blue-dark:#4e7891;--line:rgba(69,105,126,.15);--soft:#e5f1f6;--danger:#a65b65;--danger-bg:#f7e5e7;--success:#4d816c;--success-bg:#e4f1eb;--shadow:0 22px 60px rgba(54,82,99,.11)}
+    *{box-sizing:border-box}html{font-family:Inter,"Noto Sans Thai","Leelawadee UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}body{margin:0;min-width:320px;min-height:100vh;background:radial-gradient(circle at 15% 5%,rgba(200,229,241,.7),transparent 34%),radial-gradient(circle at 88% 95%,rgba(210,234,227,.54),transparent 32%),linear-gradient(155deg,#f7fbfd,#edf5f8 58%,#eef5f2)}button,input{font:inherit}.shell{width:100%;min-height:100vh;display:grid;place-items:center;padding:24px}.wrap{width:min(460px,100%)}.brand-row{display:flex;align-items:center;justify-content:space-between;margin:0 5px 16px}.brand{display:flex;align-items:center;gap:11px}.logo{width:43px;height:43px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.84);border-radius:14px;background:linear-gradient(145deg,#fff,#cde7f2);color:var(--blue);box-shadow:0 8px 18px rgba(54,82,99,.07)}.logo svg{width:25px}.brand strong{display:block;font-size:14px}.brand small{display:block;margin-top:2px;color:var(--muted);font-size:10px}.language{min-height:36px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.62);color:#557589;font-size:11px;font-weight:750;cursor:pointer}.card{position:relative;overflow:hidden;padding:32px;border:1px solid rgba(73,109,130,.12);border-radius:25px;background:var(--surface);box-shadow:var(--shadow);backdrop-filter:blur(16px)}.card:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#aed2e1,#79a8bd,#b8dbd1)}.heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:24px}.heading h1{margin:0;font-size:27px;letter-spacing:-.04em}.heading p{margin:7px 0 0;color:var(--muted);font-size:13px;line-height:1.55}.mimi{width:55px;height:55px;flex:0 0 55px;display:grid;place-items:center;border:2px solid rgba(255,255,255,.88);border-radius:19px;background:linear-gradient(145deg,#fff0bb,#f4d8dd 56%,#cee9f4);font-size:33px;box-shadow:0 9px 20px rgba(54,82,99,.09);animation:float 3.8s ease-in-out infinite}@keyframes float{50%{transform:translateY(-3px)}}.form{display:grid;gap:16px}.field label{display:block;margin-bottom:7px;color:#536f7f;font-size:12px;font-weight:750}.control{position:relative}.control input{width:100%;min-height:49px;padding:11px 13px;border:1px solid var(--line);border-radius:13px;background:rgba(251,254,255,.94);color:var(--ink);outline:none;transition:border-color .18s,box-shadow .18s}.control input:hover{border-color:rgba(88,139,168,.3)}.control input:focus{border-color:#78a6bd;box-shadow:0 0 0 4px rgba(102,157,184,.13)}.control input[aria-invalid=true]{border-color:#bd777f}.password input{padding-right:50px}.reveal{position:absolute;right:7px;top:7px;width:35px;height:35px;border:0;border-radius:9px;background:transparent;color:#668697;cursor:pointer}.reveal:hover{background:var(--soft)}.error{min-height:15px;margin:5px 0 0;color:var(--danger);font-size:10px}.row{display:flex;align-items:center;justify-content:space-between;gap:16px}.remember{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;cursor:pointer}.remember input{width:16px;height:16px;margin:0;accent-color:var(--blue)}.text-button{padding:0;border:0;background:transparent;color:#527b92;font-size:11px;font-weight:750;cursor:pointer}.text-button:hover{text-decoration:underline}.primary{width:100%;min-height:49px;display:flex;align-items:center;justify-content:center;gap:11px;border:0;border-radius:13px;background:linear-gradient(135deg,#6997b1,#56839d);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 9px 20px rgba(62,110,137,.13);transition:transform .18s,box-shadow .18s}.primary:hover{transform:translateY(-1px);box-shadow:0 12px 24px rgba(62,110,137,.17)}.primary:disabled{opacity:.6;cursor:wait;transform:none}.switch{text-align:center;margin:20px 0 0;color:var(--muted);font-size:11px}.switch button{margin-left:4px}.message{display:none;padding:12px 13px;border-radius:11px;font-size:11px;line-height:1.5}.message.show{display:block}.message.error-message{border:1px solid rgba(166,91,101,.15);background:var(--danger-bg);color:#86515a}.message.success-message{border:1px solid rgba(77,129,108,.14);background:var(--success-bg);color:#416f5c}.trust{display:flex;justify-content:center;align-items:center;gap:7px;margin:16px 0 0;color:#8798a1;font-size:9px}.trust i{width:6px;height:6px;border-radius:50%;background:#68aa90;box-shadow:0 0 0 4px rgba(104,170,144,.09)}.view[hidden]{display:none!important}:focus-visible{outline:3px solid rgba(83,132,160,.28);outline-offset:3px}
+    .auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:25px;padding:4px;border:1px solid rgba(69,105,126,.10);border-radius:13px;background:#edf5f8}.auth-tab{min-height:38px;border:0;border-radius:10px;background:transparent;color:#718590;font-size:11px;font-weight:800;cursor:pointer}.auth-tab.active{background:#fff;color:#41677e;box-shadow:0 4px 12px rgba(54,82,99,.07)}.secondary-switch{display:none}
+    @media(max-width:520px){.shell{padding:18px}.card{padding:27px 21px;border-radius:22px}.heading h1{font-size:24px}.mimi{width:49px;height:49px;flex-basis:49px;font-size:29px}.row{align-items:flex-start;flex-direction:column;gap:11px}.auth-tabs{margin-bottom:22px}}
+    @media(prefers-reduced-motion:reduce){.mimi{animation:none}.primary{transition:none}}
+  </style>
+  <style id="classic-auth-layout">
+    .shell {
+      grid-template-columns: minmax(390px,.95fr) minmax(470px,1.05fr);
+      gap: 0;
+      padding: 24px;
+    }
+    .auth-intro {
+      position: relative;
+      overflow: hidden;
+      min-height: calc(100vh - 48px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px;
+      border: 1px solid rgba(255,255,255,.76);
+      border-radius: 30px;
+      background: linear-gradient(155deg,rgba(216,237,246,.94),rgba(204,230,240,.78) 50%,rgba(213,237,231,.82));
+      box-shadow: 0 22px 60px rgba(54,82,99,.10);
+    }
+    .auth-intro::before {
+      content: "";
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      right: -130px;
+      top: 28%;
+      border-radius: 50%;
+      background: rgba(255,255,255,.20);
+      pointer-events: none;
+    }
+    .intro-brand { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
+    .intro-logo { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 15px; background: rgba(255,255,255,.72); color: #547f98; }
+    .intro-logo svg { width: 27px; }
+    .intro-brand strong,.intro-brand small { display: block; }
+    .intro-brand strong { font-size: 15px; }
+    .intro-brand small { margin-top: 3px; color: #668292; font-size: 11px; }
+    .intro-copy { position: relative; z-index: 1; max-width: 540px; }
+    .intro-kicker { color: #5d8094; font-size: 11px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
+    .intro-copy h1 { margin: 14px 0 17px; max-width: 520px; font-size: clamp(35px,4.4vw,60px); line-height: 1.04; letter-spacing: -.055em; }
+    .intro-copy p { max-width: 500px; margin: 0; color: #5e7a89; font-size: 14px; line-height: 1.75; }
+    .intro-footer { position: relative; z-index: 1; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; color: #66818f; font-size: 11px; }
+    .intro-mimi { width: 82px; height: 82px; display: grid; place-items: center; border: 2px solid rgba(255,255,255,.88); border-radius: 29px; background: linear-gradient(145deg,#fff0bb,#f4d8dd 56%,#cee9f4); font-size: 48px; box-shadow: 0 15px 30px rgba(54,82,99,.11); animation: float 3.8s ease-in-out infinite; }
+    .wrap { width: min(470px,calc(100% - 56px)); margin: auto; }
+    .brand-row { justify-content: flex-end; margin-bottom: 14px; }
+    .brand-row .brand { display: none; }
+    .card { width: 100%; }
+    .heading .mimi { display: none; }
+
+    @media(max-width:920px){
+      .shell{grid-template-columns:1fr;padding:16px}.auth-intro{min-height:220px;padding:27px;border-radius:25px}.intro-copy{margin:34px 0 12px}.intro-copy h1{max-width:520px;font-size:35px;margin-block:10px}.intro-copy p{font-size:12px;max-width:540px}.intro-footer>span{display:none}.intro-mimi{position:absolute;right:26px;bottom:22px;width:62px;height:62px;border-radius:22px;font-size:36px}.wrap{width:min(470px,100%);padding-top:22px}.brand-row{margin-right:4px}
+    }
+    @media(max-width:520px){
+      .shell{padding:12px}.auth-intro{min-height:185px;padding:22px}.intro-brand strong{font-size:13px}.intro-copy{margin:25px 0 6px}.intro-copy h1{max-width:280px;font-size:28px}.intro-copy p{display:none}.intro-mimi{width:52px;height:52px;font-size:31px}.wrap{padding-top:15px}.card{padding:25px 20px}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="auth-intro" aria-labelledby="introTitle">
+      <div class="intro-brand"><span class="intro-logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 13h4l2-7 4 13 4-16 3 10h3"/></svg></span><div><strong>Noise Awareness</strong><small data-t="system">Monitoring system</small></div></div>
+      <div class="intro-copy"><span class="intro-kicker" data-t="introKicker">A calmer space starts here</span><h1 id="introTitle" data-t="introTitle">Understand the room without recording conversations.</h1><p data-t="introCopy">Review approximate sound activity, presence, and alerts with privacy-first on-device analysis.</p></div>
+      <div class="intro-footer"><span data-t="privacyNote">Sound is classified on-device.</span><div class="intro-mimi" aria-label="Mimi mascot">🐰</div></div>
+    </section>
+    <div class="wrap">
+      <header class="brand-row"><div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 13h4l2-7 4 13 4-16 3 10h3"/></svg></span><div><strong>Noise Awareness</strong><small data-t="system">Monitoring system</small></div></div><button class="language" id="languageButton" type="button">ไทย</button></header>
+      <section class="card">
+        <div class="auth-tabs" role="tablist" aria-label="Account access">
+          <button class="auth-tab active" type="button" role="tab" aria-selected="true" data-view="login" data-t="signIn">Sign in</button>
+          <button class="auth-tab" type="button" role="tab" aria-selected="false" data-view="register" data-t="createAccount">Create an account</button>
+        </div>
+        <div class="view" id="loginView">
+          <div class="heading"><div><h1 data-t="signIn">Sign in</h1><p data-t="signInCopy">Continue to your monitoring overview.</p></div><div class="mimi" aria-label="Mimi mascot">🐰</div></div>
+          <form class="form" id="loginForm" novalidate>
+            <div class="field"><label for="loginEmail" data-t="email">Email address</label><div class="control"><input id="loginEmail" type="email" autocomplete="username" inputmode="email" required></div><p class="error" data-error="loginEmail"></p></div>
+            <div class="field"><label for="loginPassword" data-t="password">Password</label><div class="control password"><input id="loginPassword" type="password" autocomplete="current-password" minlength="8" required><button class="reveal" type="button" data-reveal="loginPassword" aria-label="Show password">◉</button></div><p class="error" data-error="loginPassword"></p></div>
+            <div class="row"><label class="remember"><input id="rememberEmail" type="checkbox"><span data-t="remember">Remember my email</span></label><button class="text-button" type="button" data-view="reset" data-t="forgot">Forgot password?</button></div>
+            <div class="message error-message" id="loginMessage" role="alert"></div>
+            <button class="primary" type="submit"><span data-t="continue">Continue</span><span aria-hidden="true">→</span></button>
+          </form>
+          <p class="switch secondary-switch"><span data-t="newHere">New here?</span><button class="text-button" type="button" data-view="register" data-t="createAccount">Create an account</button></p>
+        </div>
+
+        <div class="view" id="registerView" hidden>
+          <div class="heading"><div><h1 data-t="register">Create account</h1><p data-t="registerCopy">Set up access to your monitoring system.</p></div><div class="mimi" aria-label="Mimi mascot">🐰</div></div>
+          <form class="form" id="registerForm" novalidate>
+            <div class="field"><label for="registerName" data-t="name">Name</label><div class="control"><input id="registerName" type="text" autocomplete="name" required minlength="2"></div><p class="error" data-error="registerName"></p></div>
+            <div class="field"><label for="registerEmail" data-t="email">Email address</label><div class="control"><input id="registerEmail" type="email" autocomplete="email" inputmode="email" required></div><p class="error" data-error="registerEmail"></p></div>
+            <div class="field"><label for="registerPassword" data-t="password">Password</label><div class="control password"><input id="registerPassword" type="password" autocomplete="new-password" minlength="8" required><button class="reveal" type="button" data-reveal="registerPassword" aria-label="Show password">◉</button></div><p class="error" data-error="registerPassword"></p></div>
+            <div class="field"><label for="confirmPassword" data-t="confirm">Confirm password</label><div class="control password"><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required><button class="reveal" type="button" data-reveal="confirmPassword" aria-label="Show password">◉</button></div><p class="error" data-error="confirmPassword"></p></div>
+            <div class="message error-message" id="registerMessage" role="alert"></div>
+            <button class="primary" type="submit"><span data-t="createAccount">Create an account</span><span aria-hidden="true">→</span></button>
+          </form>
+          <p class="switch secondary-switch"><span data-t="haveAccount">Already have an account?</span><button class="text-button" type="button" data-view="login" data-t="signIn">Sign in</button></p>
+        </div>
+
+        <div class="view" id="resetView" hidden>
+          <div class="heading"><div><h1 data-t="reset">Reset password</h1><p data-t="resetCopy">We’ll send reset instructions to your email.</p></div><div class="mimi" aria-label="Mimi mascot">🐰</div></div>
+          <form class="form" id="resetForm" novalidate>
+            <div class="field"><label for="resetEmail" data-t="email">Email address</label><div class="control"><input id="resetEmail" type="email" autocomplete="email" inputmode="email" required></div><p class="error" data-error="resetEmail"></p></div>
+            <div class="field"><label for="recoveryCode">Recovery code / ??????????</label><div class="control"><input id="recoveryCode" type="text" autocomplete="off" required></div><p class="help">Use the code saved during registration or issued by an administrator.</p></div>
+            <div class="field"><label for="resetPassword" data-t="newPassword">New password</label><div class="control password"><input id="resetPassword" type="password" autocomplete="new-password" minlength="8" required><button class="reveal" type="button" data-reveal="resetPassword" aria-label="Show password">◉</button></div><p class="error" data-error="resetPassword"></p></div>
+            <div class="field"><label for="resetConfirm" data-t="confirm">Confirm password</label><div class="control password"><input id="resetConfirm" type="password" autocomplete="new-password" minlength="8" required><button class="reveal" type="button" data-reveal="resetConfirm" aria-label="Show password">◉</button></div><p class="error" data-error="resetConfirm"></p></div>
+            <div class="message error-message" id="resetError" role="alert"></div><div class="message success-message" id="resetSuccess" role="status"></div>
+            <button class="primary" type="submit"><span data-t="savePassword">Save new password</span><span aria-hidden="true">→</span></button>
+          </form>
+          <p class="switch"><button class="text-button" type="button" data-view="login" data-t="backSignIn">Back to sign in</button></p>
+        </div>
+        <p class="trust"><i></i><span data-t="trust">Secure session · Privacy-first monitoring</span></p>
+      </section>
+    </div>
+  </main>
+  <script src="./assets/js/local-auth.js?v=server-required-2"></script>
+  <script>
+    const copy={en:{system:'Monitoring system',introKicker:'A calmer space starts here',introTitle:'Understand the room without recording conversations.',introCopy:'Review approximate sound activity, presence, and alerts with privacy-first on-device analysis.',privacyNote:'Sound is classified on-device.',signIn:'Sign in',signInCopy:'Continue to your monitoring overview.',email:'Email address',password:'Password',remember:'Remember my email',forgot:'Forgot password?',continue:'Continue',newHere:'New here?',createAccount:'Create an account',register:'Create account',registerCopy:'Set up access to your monitoring system.',name:'Name',confirm:'Confirm password',haveAccount:'Already have an account?',reset:'Reset password',resetCopy:'We’ll send reset instructions to your email.',sendReset:'Send reset link',backSignIn:'Back to sign in',trust:'Secure session · Privacy-first monitoring',required:'This field is required.',invalidEmail:'Enter a valid email address.',shortPassword:'Use at least 8 characters.',passwordMismatch:'Passwords do not match.',signingIn:'Signing in…',creating:'Creating account…',sending:'Sending…',loginFailed:'Unable to sign in. Check your details.',registerFailed:'Unable to create the account. Please try again.',resetFailed:'Unable to send the reset link. Please try again.',resetSent:'If an account exists for this email, reset instructions have been sent.',show:'Show password',hide:'Hide password'},th:{system:'ระบบตรวจสอบเสียง',introKicker:'พื้นที่สงบเริ่มต้นที่นี่',introTitle:'เข้าใจบรรยากาศในห้องโดยไม่บันทึกบทสนทนา',introCopy:'ตรวจสอบกิจกรรมเสียงโดยประมาณ การตรวจพบคน และการแจ้งเตือนด้วยการวิเคราะห์บนอุปกรณ์ที่คำนึงถึงความเป็นส่วนตัว',privacyNote:'เสียงถูกจำแนกภายในอุปกรณ์',signIn:'เข้าสู่ระบบ',signInCopy:'เข้าสู่หน้าภาพรวมระบบตรวจสอบ',email:'อีเมล',password:'รหัสผ่าน',remember:'จดจำอีเมลของฉัน',forgot:'ลืมรหัสผ่าน?',continue:'ดำเนินการต่อ',newHere:'ยังไม่มีบัญชี?',createAccount:'สร้างบัญชี',register:'สร้างบัญชี',registerCopy:'ตั้งค่าบัญชีเพื่อเข้าใช้งานระบบตรวจสอบ',name:'ชื่อ',confirm:'ยืนยันรหัสผ่าน',haveAccount:'มีบัญชีอยู่แล้ว?',reset:'รีเซ็ตรหัสผ่าน',resetCopy:'ระบบจะส่งขั้นตอนรีเซ็ตรหัสผ่านไปยังอีเมลของคุณ',sendReset:'ส่งลิงก์รีเซ็ต',backSignIn:'กลับไปเข้าสู่ระบบ',trust:'เซสชันปลอดภัย · เคารพความเป็นส่วนตัว',required:'กรุณากรอกข้อมูลในช่องนี้',invalidEmail:'กรุณากรอกอีเมลให้ถูกต้อง',shortPassword:'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร',passwordMismatch:'รหัสผ่านไม่ตรงกัน',signingIn:'กำลังเข้าสู่ระบบ…',creating:'กำลังสร้างบัญชี…',sending:'กำลังส่ง…',loginFailed:'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูล',registerFailed:'สร้างบัญชีไม่สำเร็จ กรุณาลองอีกครั้ง',resetFailed:'ส่งลิงก์รีเซ็ตไม่สำเร็จ กรุณาลองอีกครั้ง',resetSent:'หากมีบัญชีนี้ ระบบได้ส่งขั้นตอนรีเซ็ตไปยังอีเมลแล้ว',show:'แสดงรหัสผ่าน',hide:'ซ่อนรหัสผ่าน'}};
+    Object.assign(copy.en,{newPassword:'New password',savePassword:'Save new password',resetCopy:'Use your private recovery code to reset your password here. No email is sent.',resetSent:'Password reset. Save the new recovery code and sign in.',resetFailed:'Check your email and recovery code.',trust:'Server account and secure session'});Object.assign(copy.th,{newPassword:'รหัสผ่านใหม่',savePassword:'บันทึกรหัสผ่านใหม่',resetCopy:'ใช้รหัสกู้คืนส่วนตัวเพื่อรีเซ็ตรหัสผ่านบนหน้านี้ ไม่มีการส่งอีเมล',resetSent:'รีเซ็ตแล้ว กรุณาเก็บรหัสกู้คืนใหม่และเข้าสู่ระบบ',resetFailed:'ตรวจสอบอีเมลและรหัสกู้คืน',trust:'บัญชีและเซสชันจัดเก็บฝั่งเซิร์ฟเวอร์'});
+    let language=localStorage.getItem('noise-language')||'en',activeView='login';const $=id=>document.getElementById(id),t=key=>copy[language][key]||key;
+    function applyLanguage(){document.documentElement.lang=language;document.querySelectorAll('[data-t]').forEach(el=>el.textContent=t(el.dataset.t));document.querySelectorAll('[data-reveal]').forEach(button=>button.setAttribute('aria-label',t($(button.dataset.reveal).type==='password'?'show':'hide')));$('languageButton').textContent=language==='en'?'ไทย':'English';document.title=language==='th'?'บัญชี · Noise Awareness':'Account · Noise Awareness'}
+    function showView(view){activeView=view;['login','register','reset'].forEach(name=>$(name+'View').hidden=name!==view);document.querySelectorAll('.auth-tab').forEach(tab=>{let active=tab.dataset.view===view;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active))});document.querySelectorAll('.message').forEach(el=>el.classList.remove('show'));document.querySelector(`#${view}View input`)?.focus()}
+    function setError(input,key){let message=document.querySelector(`[data-error="${input.id}"]`);input.setAttribute('aria-invalid','true');if(message)message.textContent=t(key)}
+    function clearForm(form){form.querySelectorAll('input').forEach(input=>input.removeAttribute('aria-invalid'));form.querySelectorAll('.error').forEach(el=>el.textContent='')}
+    function validateEmail(input){if(!input.value.trim()){setError(input,'required');return false}if(!input.validity.valid){setError(input,'invalidEmail');return false}return true}
+    function validatePassword(input,minimum=8){if(!input.value){setError(input,'required');return false}if(input.value.length<minimum){setError(input,'shortPassword');return false}return true}
+    function setBusy(button,busy,key){button.disabled=busy;let label=button.querySelector('span');if(label)label.textContent=busy?t(key):t(button.dataset.defaultKey)}
+    async function post(path,payload){return AuthAPI(path,payload)}
+    document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>showView(button.dataset.view)));
+    document.querySelectorAll('[data-reveal]').forEach(button=>button.addEventListener('click',()=>{let input=$(button.dataset.reveal),hidden=input.type==='password';input.type=hidden?'text':'password';button.setAttribute('aria-label',t(hidden?'hide':'show'));input.focus()}));
+    $('languageButton').addEventListener('click',()=>{language=language==='en'?'th':'en';localStorage.setItem('noise-language',language);applyLanguage()});
+    let remembered=localStorage.getItem('noise-remembered-email');if(remembered){$('loginEmail').value=remembered;$('rememberEmail').checked=true}
+    $('loginForm').querySelector('.primary').dataset.defaultKey='continue';$('registerForm').querySelector('.primary').dataset.defaultKey='createAccount';$('resetForm').querySelector('.primary').dataset.defaultKey='savePassword';
+    $('loginForm').addEventListener('submit',async event=>{event.preventDefault();let form=event.currentTarget,email=$('loginEmail'),password=$('loginPassword'),button=form.querySelector('.primary'),message=$('loginMessage');clearForm(form);message.classList.remove('show');if(!validateEmail(email)|!validatePassword(password,1))return;setBusy(button,true,'signingIn');try{await post('/api/auth/login',{email:email.value.trim(),password:password.value});if($('rememberEmail').checked)localStorage.setItem('noise-remembered-email',email.value.trim());else localStorage.removeItem('noise-remembered-email');location.replace('./index.html')}catch(error){message.textContent=error.message||t('loginFailed');message.classList.add('show');setBusy(button,false)}});
+    $('registerForm').addEventListener('submit',async event=>{event.preventDefault();let form=event.currentTarget,name=$('registerName'),email=$('registerEmail'),password=$('registerPassword'),confirm=$('confirmPassword'),button=form.querySelector('.primary'),message=$('registerMessage');clearForm(form);message.classList.remove('show');let valid=true;if(name.value.trim().length<2){setError(name,'required');valid=false}if(!validateEmail(email))valid=false;if(!validatePassword(password))valid=false;if(password.value!==confirm.value){setError(confirm,'passwordMismatch');valid=false}if(!valid)return;setBusy(button,true,'creating');try{let result=await post('/api/auth/register',{name:name.value.trim(),email:email.value.trim(),password:password.value,confirmPassword:confirm.value});if(result.recoveryCode)showRecovery(result.recoveryCode,()=>location.replace('./index.html'));else location.replace('./index.html')}catch(error){message.textContent=error.message||t('registerFailed');message.classList.add('show');setBusy(button,false)}});
+    $('resetForm').addEventListener('submit',async event=>{event.preventDefault();let form=event.currentTarget,email=$('resetEmail'),password=$('resetPassword'),confirm=$('resetConfirm'),button=form.querySelector('.primary'),error=$('resetError'),success=$('resetSuccess');clearForm(form);error.classList.remove('show');success.classList.remove('show');let valid=validateEmail(email);if(!validatePassword(password))valid=false;if(password.value!==confirm.value){setError(confirm,'passwordMismatch');valid=false}if(!valid)return;setBusy(button,true,'sending');try{let result=await post('/api/auth/reset-password',{email:email.value.trim(),password:password.value,recoveryCode:$('recoveryCode').value.trim(),resetToken:$('recoveryCode').value.trim()});if(result.recoveryCode)showRecovery(result.recoveryCode,()=>location.replace('./auth.html'));success.textContent='Password reset successfully. Sign in with your new password.';success.classList.add('show');setBusy(button,false)}catch(requestError){error.textContent=requestError.message;error.classList.add('show');setBusy(button,false)}});
+    function showRecovery(code,done){const box=document.createElement('div');box.style.cssText='position:fixed;inset:0;background:#0008;display:grid;place-items:center;z-index:9999';const panel=document.createElement('section');panel.style.cssText='background:white;padding:28px;border-radius:20px;max-width:540px;margin:20px;color:#20392e';panel.innerHTML='<h2>Save your recovery code / ??????????????</h2><p>This code replaces email recovery. It is shown once. Keep it privately; anyone with it can reset your password.</p><textarea readonly style="width:100%;min-height:80px"></textarea><button type="button" style="margin-top:20px">I saved the code / ????????????</button>';panel.querySelector('textarea').value=code;panel.querySelector('button').onclick=()=>{box.remove();done()};box.append(panel);document.body.append(box);}
+    async function checkSession(){if(window.NOISE_AUTH_CONFIG?.mode==='local'&&window.LocalAuth){if(LocalAuth.session())location.replace('./index.html');return}try{let response=await fetch('/api/auth/session',{credentials:'include',headers:{Accept:'application/json'}});if(!response.headers.get('content-type')?.includes('application/json')){showBackendNotice();return}const sessionInfo=await response.json();if(sessionInfo.provider==='thingsboard'){copy.en.resetCopy='Use a reset token issued by ThingsBoard. Legacy NAS recovery codes do not reset cloud passwords.';copy.th.resetCopy=copy.en.resetCopy;const label=document.querySelector('label[for=recoveryCode]');if(label)label.textContent='ThingsBoard reset token';applyLanguage()}if(response.ok)location.replace('./index.html')}catch(error){showBackendNotice()}}
+    applyLanguage();checkSession();
+  </script>
+</body>
+</html>
+

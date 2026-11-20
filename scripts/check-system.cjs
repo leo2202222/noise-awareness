@@ -1,0 +1,37 @@
+﻿'use strict';
+// Legacy-provider regression: runtime defaults to ThingsBoard.
+process.env.AUTH_PROVIDER='local';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+process.env.AUTH_DB_PATH=':memory:';process.env.THINGSBOARD_API_KEY='isolated-test-key';
+const nativeFetch=global.fetch,ts=Date.now();
+const latest={sound_db:[{ts,value:'76.3'}],sound_type:[{ts,value:'Unknown'}],alert:[{ts,value:'true'}],presence:[{ts,value:'true'}],noise_limit:[{ts,value:'75'}],device_status:[{ts,value:'awake'}]};
+const history={sound_db:[{ts,value:'76.3'},{ts:ts-100000,value:'20'}],sound_type:[{ts,value:'Unknown'}],alert:[{ts,value:'true'}],presence:[{ts,value:'true'}]};
+let failed=false;
+global.fetch=async url=>{assert.ok(String(url).startsWith('https://thingsboard.cloud/'));if(failed)return {ok:false,status:401};return {ok:true,status:200,text:async()=>JSON.stringify(String(url).includes('/attributes/SERVER_SCOPE')?[{key:'active',value:false}]:String(url).includes('startTs=')?history:latest)};};
+const {server,snapshot,historyEvents,alertIncidents,bool}=require('../server.cjs');
+(async()=>{
+ const incidents=alertIncidents([{ts:1000,alertStatus:'Alert'},{ts:2000,alertStatus:'Alert'},{ts:3000,alertStatus:'Normal'},{ts:5000,alertStatus:'Alert'},{ts:100000,alertStatus:'Alert'}]);assert.equal(incidents.length,3);assert.equal(incidents[2].durationMs,2000);assert.equal(incidents[0].durationMs,null);assert.equal(incidents[1].durationMs,null);
+ let snap=await snapshot();assert.equal(snap.events.length,2);assert.equal(snap.events[1].presence,null);assert.equal(snap.events[1].alertStatus,'Unknown');assert.equal(snap.events[0].durationMs,null);assert.equal(snap.current.presence,true);assert.equal(snap.devices[0].online,false);assert.equal(bool('invalid'),null);
+ latest.presence[0].ts=ts-1;delete latest.alert;latest.sound_type[0].value='<img src=x onerror=alert(1)>';
+ snap=await snapshot();assert.equal(snap.current.presence,null);assert.equal(snap.current.alertStatus,'Unknown');assert.equal(snap.current.soundType,'Unknown');
+ assert.equal(historyEvents({sound_db:[{ts,value:'invalid'}]}).length,0);
+ const html=fs.readFileSync(require('node:path').join(__dirname,'../dist/index.html'),'utf8');
+ for(const page of ['index.html','auth.html','login.html'])for(const m of fs.readFileSync(require('node:path').join(__dirname,'../dist',page),'utf8').matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(m[1].trim())new vm.Script(m[1]);
+ const ctx={uiLanguage:'en',view:'daily',liveSnapshot:snap,events:snap.events.map(e=>({...e,type:e.soundType,status:e.alertStatus,time:'18:00',date:new Date(e.ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Bangkok'})})),devices:snap.devices,selectedDevice:snap.devices[0]};vm.createContext(ctx);
+ for(const name of ['tr','badge']){const line=html.split('\n').find(l=>l.startsWith('const '+name+'='));vm.runInContext(line,ctx);}
+ for(const name of ['eventTimestamp','normalizeEvent','telemetrySeries','insightModel','bangkokHour','greetingEmoji','timeGreeting','head','overview','lineChart','dashboard','insights','devicesPage','settings']){const line=html.split('\n').find(l=>l.startsWith('function '+name+'('));assert.ok(line,name);vm.runInContext(line,ctx);}
+ vm.runInContext(html.match(/^function soundJourneyChart\(\)\{[\s\S]*?^\}/m)[0],ctx);
+ vm.runInContext('chart=soundJourneyChart();model=insightModel();dash=dashboard();devicePage=devicesPage();settingsPage=settings();',ctx,{timeout:1000});
+ assert.ok(ctx.chart.includes('20.0 dB'));assert.equal(ctx.model.total,1);assert.equal(ctx.model.distribution.Unknown,1);vm.runInContext('summary=insights()',ctx);assert.ok(ctx.summary.includes('<small>Unknown</small>'));assert.ok(ctx.dash.includes('metrics'));assert.ok(ctx.devicePage.includes('disabled data-edit-device'));assert.ok(ctx.settingsPage.includes('75 dB'));
+ ctx.liveSnapshot.threshold=null;vm.runInContext('chart=soundJourneyChart()',ctx);assert.ok(ctx.chart.includes('Threshold not received'));assert.ok(!ctx.chart.includes('72 dB'));
+ const adapter={window:{},fetch:async()=>({ok:false,status:401}),AbortSignal};vm.createContext(adapter);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../dist/assets/js/thingsboard-adapter.js'),'utf8'),adapter);await assert.rejects(new adapter.window.ThingsBoardAdapter({baseUrl:'/api/thingsboard'}).getSnapshot(),e=>e.status===401);
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
+ for(const p of ['/.env','/data/auth.sqlite','/server.cjs','/assets/js/mock-data.js'])assert.equal((await nativeFetch(base+p)).status,404,p);
+ assert.equal((await nativeFetch(base+'/api/thingsboard/snapshot')).status,401);
+ const registered=await nativeFetch(base+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Audit User',email:'audit@example.com',password:'isolated-password'})});assert.equal(registered.status,201);const cookie=registered.headers.get('set-cookie').split(';')[0];
+ const live=await nativeFetch(base+'/api/thingsboard/snapshot',{headers:{Cookie:cookie}});assert.equal(live.status,200);assert.ok(!(await live.text()).includes('isolated-test-key'));
+ failed=true;assert.equal((await nativeFetch(base+'/api/thingsboard/snapshot',{headers:{Cookie:cookie}})).status,502);
+ assert.equal((await nativeFetch(base+'/api/thingsboard/devices',{method:'POST',headers:{Cookie:cookie,'Content-Type':'application/json'},body:'{}'})).status,400);
+ console.log('PASS: historical joins, missing/current fields, malformed classifications, graph values and timestamps, no invented threshold, statistics, dashboard templates, base device template, session expiry, static secret isolation, authenticated API, upstream errors.');
+})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{global.fetch=nativeFetch;server.close();});
+
