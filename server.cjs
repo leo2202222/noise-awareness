@@ -7,7 +7,7 @@ const root = path.join(__dirname, 'dist');
 const base = (process.env.THINGSBOARD_URL || 'https://thingsboard.cloud').replace(/\/$/, '');
 const id = process.env.THINGSBOARD_DEVICE_ID || '26330d60-e196-11f1-ba8b-c1a2c9300913';
 const key = process.env.THINGSBOARD_API_KEY;
-const keys = ['sound_db','sound_type','confidence','noise_limit','alert','presence','audio_valid','device_status'];
+const keys = ['sound_db','sound_class','sound_type','confidence','noise_limit','alert','presence','audio_valid','device_status'];
 async function tb(route,options={}) {
   if(auth.provider==='thingsboard')return auth.apiRequest(route,options);
   if (!key) throw new Error('Set THINGSBOARD_API_KEY in .env and restart the server.');
@@ -16,13 +16,19 @@ async function tb(route,options={}) {
   if(response.status===204)return null;const text=await response.text();return text?JSON.parse(text):null;
 }
 const bool = value => value === true || value === 'true' ? true : value === false || value === 'false' ? false : null;
-const soundType = value => ['Speech','Music / Media','Impact','Background Noise'].includes(value) ? value : 'Unknown';
+const soundType = value => ({speech:'Speech',music:'Music',noise:'Noise','music / media':'Music','background noise':'Noise'})[String(value??'').trim().toLowerCase()] || 'Unknown';
 const number = value => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
+function classificationSeries(data){return ['sound_class','sound_type'].map(key=>({key,points:(data[key]||[]).filter(p=>Number.isFinite(Number(p.ts))).slice().sort((a,b)=>Number(a.ts)-Number(b.ts))}))}
+function classificationAt(series,ts){
+ for(const {key,points}of series){let left=0,right=points.length-1,index=-1;while(left<=right){const mid=(left+right)>>1;if(Number(points[mid].ts)<=ts){index=mid;left=mid+1}else right=mid-1}if(index>=0&&ts-Number(points[index].ts)<=2000)return {type:soundType(points[index].value),key,ts:Number(points[index].ts)}}
+ return {type:'Unknown',key:null,ts:null};
+}
 function historyEvents(history,deviceId=id,deviceName=process.env.THINGSBOARD_DEVICE_NAME||'NAS 01') {
+  const classifications=classificationSeries(history);
   const indexed=Object.fromEntries(keys.map(k=>[k,new Map((history[k]||[]).map(p=>[Number(p.ts),p.value]))]));
   return (history.sound_db||[]).filter(p=>number(p.value)!==null).map(p=>{
-    const ts=Number(p.ts),get=k=>indexed[k].get(ts);
-    return {ts,deviceId,deviceName,soundType:soundType(get('sound_type')),approximateSoundLevel:number(p.value),presence:get('presence')==null?null:bool(get('presence')),alertStatus:bool(get('alert'))==null?'Unknown':bool(get('alert'))?'Alert':'Normal',modelConfidence:number(get('confidence')),durationMs:null,reason:'Recorded ThingsBoard telemetry sample. Duration is not recorded; fields are matched only at the same timestamp.'};
+    const ts=Number(p.ts),get=k=>indexed[k].get(ts),classification=classificationAt(classifications,ts);
+    return {ts,deviceId,deviceName,soundType:classification.type,soundClassKey:classification.key,soundClassTs:classification.ts,approximateSoundLevel:number(p.value),presence:get('presence')==null?null:bool(get('presence')),alertStatus:bool(get('alert'))==null?'Unknown':bool(get('alert'))?'Alert':'Normal',modelConfidence:number(get('confidence')),durationMs:null,reason:'Recorded ThingsBoard telemetry sample. Duration is not recorded; classification uses a prior sample within 2 seconds, while other fields require the same timestamp.'};
   }).sort((a,b)=>b.ts-a.ts);
 }
 function alertIncidents(records){
@@ -37,6 +43,9 @@ async function loadHistory(prefix,now){
   if(!historyRequests.has(cacheKey))historyRequests.set(cacheKey,tb(`${prefix}?keys=${keys.join(",")}&startTs=${now-49*86400000}&endTs=${now}&agg=NONE&limit=1000&orderBy=DESC`).then(async data=>{const limit=20000;for(const key of keys){let values=data[key]||[];while(values.length>=1000&&values.length<limit){const endTs=Math.min(...values.map(p=>Number(p.ts)))-1;if(endTs<now-49*86400000)break;const page=await tb(`${prefix}?keys=${key}&startTs=${now-49*86400000}&endTs=${endTs}&agg=NONE&limit=1000&orderBy=DESC`),next=(page[key]||[]).filter(p=>Number(p.ts)<=endTs);if(!next.length)break;values=values.concat(next);data[key]=values;if(next.length<1000)break;}}historyCaches.set(cacheKey,{at:Date.now(),data});return data}).finally(()=>{historyRequests.delete(cacheKey)}));
   return historyRequests.get(cacheKey);
 }
+function mergeLatestHistory(history,latest,now){
+ for(const key of keys){const incoming=(latest[key]||[]).filter(p=>Number.isFinite(Number(p.ts))&&Number(p.ts)<=now+5000&&Number(p.ts)>=now-49*86400000);if(!incoming.length)continue;const merged=new Map((history[key]||[]).map(p=>[Number(p.ts),p]));for(const point of incoming)merged.set(Number(point.ts),point);history[key]=[...merged.values()].sort((a,b)=>Number(b.ts)-Number(a.ts)).slice(0,20000)}return history;
+}
 const statusCaches=new Map();
 async function deviceStatus(deviceId){
  const cacheKey=(auth.scopeId?auth.scopeId():'service')+'|'+deviceId;const cached=statusCaches.get(cacheKey);if(cached&&Date.now()-cached.at<5000)return cached.data;
@@ -50,19 +59,28 @@ async function snapshot(deviceId=id) {
   const configured=auth.db.prepare('SELECT * FROM devices WHERE id=?').get(deviceId)||{id:deviceId,name:process.env.THINGSBOARD_DEVICE_NAME||'NAS 01',location:''};
   const prefix = `/api/plugins/telemetry/DEVICE/${encodeURIComponent(deviceId)}/values/timeseries`;
   const now = Date.now();
-  const [latest, history, connectivity] = await Promise.all([
+  const [latest, history, connectivity, shared] = await Promise.all([
     tb(`${prefix}?keys=${keys.join(',')}`),
     loadHistory(prefix,now),
-    deviceStatus(deviceId).catch(()=>({online:null,statusSource:'unavailable'}))
+    deviceStatus(deviceId).catch(()=>({online:null,statusSource:'unavailable'})),
+    tb(`/api/plugins/telemetry/DEVICE/${encodeURIComponent(deviceId)}/values/attributes/SHARED_SCOPE?keys=noise_limit`).catch(()=>null)
   ]);
+  mergeLatestHistory(history,latest,now);
   const value = k => latest[k]?.[0]?.value;
   const ts = Number(latest.sound_db?.[0]?.ts || 0);
+  const classification=classificationAt(classificationSeries(latest),ts);
+  const savedLimit=Array.isArray(shared)?number(shared.find(a=>a.key==='noise_limit')?.value):null;
+  const threshold=savedLimit??number(value('noise_limit')),level=number(value('sound_db'));
+  const soundRecords=historyEvents(history,deviceId,configured.name);
+  const notificationStatus=level!==null&&threshold!==null?(level>=threshold?'Alert':'Normal'):(Number(latest.alert?.[0]?.ts)===ts&&bool(value('alert'))!==null?(bool(value('alert'))?'Alert':'Normal'):'Unknown');
   return {
-    threshold:number(value('noise_limit')),
-    current:ts && number(value('sound_db'))!==null ? {deviceId,ts,approximateSoundLevel:number(value('sound_db')),soundType:Number(latest.sound_type?.[0]?.ts)===ts?soundType(value('sound_type')):'Unknown',presence:Number(latest.presence?.[0]?.ts)===ts?bool(value('presence')):null,alertStatus:Number(latest.alert?.[0]?.ts)!==ts||bool(value('alert'))==null?'Unknown':bool(value('alert'))?'Alert':'Normal',modelConfidence:Number(latest.confidence?.[0]?.ts)===ts?number(value('confidence')):null,audioValid:Number(latest.audio_valid?.[0]?.ts)===ts?bool(value('audio_valid')):null,deviceStatus:value('device_status')} : null,
+    threshold,thresholdSource:savedLimit!==null?'shared-attributes':'telemetry',
+    current:ts && number(value('sound_db'))!==null ? {deviceId,ts,notificationStatus,notificationSource:level!==null&&threshold!==null?'noise_limit':'device-alert',approximateSoundLevel:number(value('sound_db')),soundType:classification.type,soundClassKey:classification.key,soundClassTs:classification.ts,presence:Number(latest.presence?.[0]?.ts)===ts?bool(value('presence')):null,alertStatus:Number(latest.alert?.[0]?.ts)!==ts||bool(value('alert'))==null?'Unknown':bool(value('alert'))?'Alert':'Normal',modelConfidence:Number(latest.confidence?.[0]?.ts)===ts?number(value('confidence')):null,audioValid:Number(latest.audio_valid?.[0]?.ts)===ts?bool(value('audio_valid')):null,deviceStatus:value('device_status')} : null,
     devices:[{...configured,...connectivity,updated:ts?new Date(ts).toLocaleString('en-GB',{timeZone:'Asia/Bangkok'}):'No telemetry'}],
-    events:historyEvents(history,deviceId,configured.name),
-    incidents:alertIncidents(historyEvents(history,deviceId,configured.name)),
+    events:soundRecords,
+    soundRecords,
+    alertRecords:soundRecords.filter(record=>record.alertStatus==='Alert'),
+    incidents:alertIncidents(soundRecords),
     historyInfo:{days:49,limitPerKey:20000,refreshedAt:historyCaches.get((auth.scopeId?auth.scopeId():'service')+'|'+prefix)?.at||now,possiblyTruncated:Object.values(history).some(points=>points.length>=20000)},
     soundLevels:(history.sound_db || []).map(p=>({ts:Number(p.ts),value:number(p.value)})).filter(p=>p.value!==null).sort((a,b)=>a.ts-b.ts)
   };

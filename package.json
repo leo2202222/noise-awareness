@@ -2,8 +2,8 @@
   "private": true,
   "scripts": {
     "start": "node --env-file=.env server.cjs",
-    "check": "node --check server.cjs && node --check auth.cjs && node --check platform.cjs && node --check push.cjs && node --check dist/assets/js/management.js && node --check auth-thingsboard.cjs && node --check thingsboard-client.cjs",
-    "test": "node scripts/check-auth.cjs && node scripts/check-system.cjs && node scripts/check-features.cjs && node scripts/check-thingsboard-auth.cjs",
+    "check": "node --check server.cjs && node --check auth.cjs && node --check platform.cjs && node --check push.cjs && node --check dist/assets/js/management.js && node --check auth-thingsboard.cjs && node --check thingsboard-client.cjs && node --check dist/assets/js/browser-notifications.js",
+    "test": "node scripts/check-auth.cjs && node scripts/check-system.cjs && node scripts/check-features.cjs && node scripts/check-thingsboard-auth.cjs && node scripts/check-notifications.cjs",
     "test:browser": "node scripts/check-browser.cjs",
     "test:cloud-browser": "node scripts/check-thingsboard-browser.cjs",
     "test:cloud-live": "node --env-file=.env scripts/check-thingsboard-live.cjs",

@@ -85,16 +85,28 @@ function createThingsBoardAuth(filename,options={}){
   try{
    const device=existingId?await client.request('/api/device/'+existingId,{service:true}):record('device',await post('/api/device',{name,type:'Noise Awareness',customerId:{id:target.tb_customer_id,entityType:'CUSTOMER'}}));
    if(device.customerId?.id!==target.tb_customer_id||device.tenantId?.id!==target.tb_tenant_id)throw error(403,'This device belongs to a different customer.');
-   const userGroup=record('entityGroup',await post('/api/entityGroup',{name:'NAS Device Owner '+device.id.id,type:'USER',ownerId:{id:target.tb_customer_id,entityType:'CUSTOMER'},additionalInfo:{nasV2Managed:true}}));
-   const deviceGroup=record('entityGroup',await post('/api/entityGroup',{name:'NAS Owned Device '+device.id.id,type:'DEVICE',ownerId:{id:target.tb_customer_id,entityType:'CUSTOMER'},additionalInfo:{nasV2Managed:true}}));
-   const readRole=record('role',await post('/api/role',{name:'NAS Owner Read '+device.id.id,type:'GROUP',permissions:['READ','READ_ATTRIBUTES','READ_TELEMETRY']}));
+   const group=async(type,name)=>{
+    const route='/api/entityGroup/CUSTOMER/'+target.tb_customer_id+'/'+type+'/'+encodeURIComponent(name);
+    const lookup=()=>client.request(route,{service:true});let found;
+    try{found=await lookup()}catch(e){if(e.upstreamStatus!==404)throw e}
+    if(!found)try{found=record('entityGroup',await post('/api/entityGroup',{name,type,ownerId:{id:target.tb_customer_id,entityType:'CUSTOMER'},additionalInfo:{nasV2Managed:true}}))}catch(e){if(e.upstreamStatus!==400||!/already|exist|duplicate/i.test(e.remoteMessage||''))throw e;found=await lookup()}
+    if(found.ownerId?.id!==target.tb_customer_id||found.type!==type||found.additionalInfo?.nasV2Managed!==true)throw error(409,'Connection group ownership does not match this account.');return found;
+   };
+   const suffix=target.tb_user_id+' '+device.id.id;
+   const userGroup=await group('USER','NAS Owner '+suffix);
+   const deviceGroup=await group('DEVICE','NAS Device '+suffix);
    await post('/api/entityGroup/'+userGroup.id.id+'/addEntities',[target.tb_user_id]);
    await post('/api/entityGroup/'+deviceGroup.id.id+'/addEntities',[device.id.id]);
-   record('groupPermission',await post('/api/groupPermission',{userGroupId:{id:userGroup.id.id,entityType:'ENTITY_GROUP'},entityGroupId:{id:deviceGroup.id.id,entityType:'ENTITY_GROUP'},roleId:{id:readRole.id.id,entityType:'ROLE'}}));
+   const grants=await client.request('/api/userGroup/'+userGroup.id.id+'/groupPermissions',{service:true});
+   if(!grants.some(p=>p.entityGroupId?.id===deviceGroup.id.id)){
+    const readRole=record('role',await post('/api/role',{name:'NAS Read '+device.id.id+' '+randomBytes(8).toString('hex'),type:'GROUP',permissions:['READ','READ_ATTRIBUTES','READ_TELEMETRY']}));
+    record('groupPermission',await post('/api/groupPermission',{userGroupId:{id:userGroup.id.id,entityType:'ENTITY_GROUP'},entityGroupId:{id:deviceGroup.id.id,entityType:'ENTITY_GROUP'},roleId:{id:readRole.id.id,entityType:'ROLE'}}));
+   }
    await requestAsHash(hashFor(req),'/api/plugins/telemetry/DEVICE/'+device.id.id+'/values/timeseries?keys=sound_db');
-   db.prepare('INSERT INTO app_meta(key,value) VALUES(?,?)').run((existingId?'cloud-connected-device:'+target.tb_user_id+':':'cloud-created-device:')+device.id.id,JSON.stringify({userId:target.tb_user_id,resources:owned}));
+   const resourceKey=(existingId?'cloud-connected-device:'+target.tb_user_id+':':'cloud-created-device:')+device.id.id;let priorResources=[];try{priorResources=JSON.parse(db.prepare('SELECT value FROM app_meta WHERE key=?').get(resourceKey)?.value||'{}').resources||[]}catch{}const resources=[...new Map([...priorResources,...owned].map(r=>[r.kind+':'+r.id,r])).values()];
+   db.prepare('INSERT INTO app_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(resourceKey,JSON.stringify({userId:target.tb_user_id,resources}));
    return device;
-  }catch(e){if(e.operation){let detail=String(e.remoteMessage||'').slice(0,300);for(const secret of [process.env.THINGSBOARD_API_KEY,process.env.THINGSBOARD_ADMIN_API_KEY])if(secret)detail=detail.replaceAll(secret,'[redacted]');console.error('Device connection failed:',JSON.stringify({operation:e.operation,status:e.upstreamStatus,detail}));if(e.upstreamStatus===400)e.message=/already|exist|duplicate/i.test(detail)?'ThingsBoard reports a duplicate device or group name. Try a different device name.':'ThingsBoard rejected device connection details (HTTP 400).';else if(e.upstreamStatus===404)e.message='ThingsBoard could not find the device or a required API resource.';else if(e.upstreamStatus===429)e.message='ThingsBoard request limit reached. Please try again later.';}const failed=[];for(const item of owned.reverse())try{await client.request('/api/'+item.kind+'/'+item.id,{method:'DELETE',service:true})}catch{failed.push(item)}if(failed.length)db.prepare('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)').run('cloud-device-cleanup:'+Date.now(),JSON.stringify(failed));throw e}
+  }catch(e){if(e.operation){let detail=String(e.remoteMessage||'').slice(0,300);for(const secret of [process.env.THINGSBOARD_API_KEY,process.env.THINGSBOARD_ADMIN_API_KEY])if(secret)detail=detail.replaceAll(secret,'[redacted]');console.error('Device connection failed:',JSON.stringify({operation:e.operation,status:e.upstreamStatus,detail}));if(e.upstreamStatus===400)e.message=e.operation==='/api/device'&&/already|exist|duplicate/i.test(detail)?'A device with this name already exists. Enter its Device ID to connect it.':'ThingsBoard rejected the connection setup. Please retry; the existing device has not been deleted.';else if(e.upstreamStatus===404)e.message='ThingsBoard could not find the device or a required API resource.';else if(e.upstreamStatus===429)e.message='ThingsBoard request limit reached. Please try again later.';}const failed=[];for(const item of owned.reverse())try{await client.request('/api/'+item.kind+'/'+item.id,{method:'DELETE',service:true})}catch{failed.push(item)}if(failed.length)db.prepare('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)').run('cloud-device-cleanup:'+Date.now(),JSON.stringify(failed));throw e}
  }
  const attempts=new Map();function limit(req){const now=Date.now(),ip=req.socket.remoteAddress;for(const[k,v]of attempts)if(v.until<now)attempts.delete(k);const r=attempts.get(ip)||{n:0,until:now+600000};r.n++;attempts.set(ip,r);if(r.n>30)throw error(429,'Too many attempts. Try again in 10 minutes.')}
  async function handle(req,res,url,send){

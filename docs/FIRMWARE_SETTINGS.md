@@ -30,3 +30,5 @@ Current Dashboard alert remains the device-reported alert, not an invented
 reclassification of historical data using today's threshold.
 
 Reference: https://thingsboard.io/docs/reference/rest-api/
+
+Settings payload update: the website sends noise_limit directly. Backend writes numeric noise_limit plus config_version to ThingsBoard SHARED_SCOPE and reads noise_limit/config_version back before reporting success. Legacy soundLevelThreshold requests remain accepted. Empty, null, boolean and out-of-range values are rejected. No live threshold was changed during this code update; read-only inspection found noise_limit=90 already present in NAS 01 Shared attributes.

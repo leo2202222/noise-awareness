@@ -8,4 +8,4 @@
 };
 
 
-window.HISTORY_MODE="incidents";
+window.HISTORY_MODE="samples";
