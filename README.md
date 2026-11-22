@@ -1,4 +1,4 @@
-﻿# Noise Awareness System — ThingsBoard authentication
+# Noise Awareness System — ThingsBoard authentication
 
 บัญชีหลักใช้ ThingsBoard Cloud ผ่าน Node backend; หน้าเว็บและระบบ IoT เดิมยังใช้งานต่อ บัญชี SQLite เดิมเก็บไว้สำหรับย้ายและ rollback
 
@@ -8,7 +8,8 @@
 - Login ด้วยบัญชี ThingsBoard; Tenant Administrator เป็น NAS Admin; Customer User เป็น Viewer
 - JWT/refresh token เข้ารหัสฝั่งเซิร์ฟเวอร์ Browser ได้เฉพาะ HttpOnly session cookie
 - Dashboard/History/Insights ใช้ telemetry จริงและตรวจสิทธิ์ Cloud ของผู้ใช้ ไม่ส่งข้อมูลด้วยสิทธิ์ service admin ให้ Viewer
-- SQLite ยังคงเก็บ session metadata, ป้ายกำกับอุปกรณ์, audit, push subscriptions และสำเนาบัญชีเก่า
+- รายการอุปกรณ์ที่เชื่อม ชื่อ และสถานที่ เก็บหลักใน ThingsBoard User additionalInfo และกู้กลับหลัง Login
+- SQLite เก็บแคชรายการอุปกรณ์, session metadata, audit, push subscriptions และสำเนาบัญชีเก่า
 - เปลี่ยนรหัสผ่านของ Customer User ยังติดสิทธิ์ PROFILE WRITE บน instance จริง ยังไม่ได้เพิ่มสิทธิ์นี้ ดู docs/PROFILE_PERMISSION_REVIEW.md
 - Cloud reset ต้องใช้ reset token จริงของ ThingsBoard รหัสกู้คืน NAS เดิมใช้ได้เฉพาะโหมด local
 

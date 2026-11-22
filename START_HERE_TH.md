@@ -29,3 +29,11 @@ PORT=3000
 ข้อจำกัดที่ยังเหลือ: Customer User เปลี่ยนรหัสผ่านติด PROFILE WRITE; ยังไม่ได้เพิ่มสิทธิ์ถาวรนี้ และ Cloud reset ต้องมี token จริงของ ThingsBoard
 
 Customer เพิ่มอุปกรณ์ได้แล้ว: เปิด Device Management > Connect / create device ใส่ UUID เพื่อเชื่อมอุปกรณ์ที่บัญชีเข้าถึงได้ หรือเว้น UUID เพื่อสร้างอุปกรณ์จริงและเชื่อมเข้าบัญชีอัตโนมัติ ไม่ต้องให้ Admin ติ๊กมอบหมายก่อนสำหรับอุปกรณ์ที่สร้างเอง ขึ้นกับโควตาของ ThingsBoard
+
+## รายการ Device ไม่หายหลัง Render restart / deploy
+
+เวอร์ชันนี้เก็บ Device ID ชื่อ และสถานที่ไว้กับบัญชีผู้ใช้ ThingsBoard ใน additionalInfo.nasV2.deviceConnections โดยไม่เก็บรหัสผ่านหรือ token ในฟิลด์นี้ เมื่อ Login เว็บจะโหลดรายการกลับมาใส่แคช SQLite ให้อัตโนมัติ ทั้ง Connect, Edit และ Disconnect ตรวจ readback จาก Cloud ก่อนแจ้งสำเร็จ
+
+รายการเก่าที่ยังอยู่ใน SQLite จะถูกย้ายเมื่อบัญชีเข้าใช้งาน หากแคชเก่าหายไปแล้ว ระบบจะพยายามกู้จากกลุ่ม NAS เดิมที่บัญชียังอ่านอุปกรณ์ได้จริง ชื่อ/สถานที่ซึ่งไม่เคยถูกบันทึกบน Cloud อาจกู้คืนไม่ได้ รายการที่ Disconnect ในเวอร์ชันใหม่นี้จะไม่กลับมาเอง
+
+หลัง Deploy บน Render ฟรี อาจต้อง Login และเปิด Push ใหม่ แต่รายการ Device ที่บันทึกด้วยเวอร์ชันนี้ไม่ต้องกด Connect ใหม่ ข้อมูล telemetry และค่า noise_limit ยังอยู่ใน ThingsBoard ตามเดิม

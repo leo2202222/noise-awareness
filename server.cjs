@@ -65,7 +65,7 @@ async function deviceStatus(deviceId){
  const data={online,statusSource:'thingsboard',lastActivityTime:activity,lastConnectTime:connected,lastDisconnectTime:disconnected};statusCaches.set(cacheKey,{at:Date.now(),data});return data;
 }
 async function snapshot(deviceId=id) {
-  const configured=auth.db.prepare('SELECT * FROM devices WHERE id=?').get(deviceId)||{id:deviceId,name:process.env.THINGSBOARD_DEVICE_NAME||'NAS 01',location:''};
+  const configured=auth.connectionLabel?.(deviceId)||auth.db.prepare('SELECT * FROM devices WHERE id=?').get(deviceId)||{id:deviceId,name:process.env.THINGSBOARD_DEVICE_NAME||'NAS 01',location:''};
   const prefix = `/api/plugins/telemetry/DEVICE/${encodeURIComponent(deviceId)}/values/timeseries`;
   const now = Date.now();
   const [latest, history, connectivity, shared] = await Promise.all([

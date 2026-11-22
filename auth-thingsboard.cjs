@@ -6,6 +6,7 @@ const legacy=require('./auth-local.cjs'),{createThingsBoardClient}=require('./th
 const derive=promisify(scrypt),{error,readBody}=legacy,ttl=7*86400000;
 function createThingsBoardAuth(filename,options={}){
  const store=legacy.createAuth(filename),db=store.db,context=new AsyncLocalStorage(),client=options.client||createThingsBoardClient(options),refreshing=new Map();
+ let deviceStore=null;const connectionLocks=new Map();
  const columns=db.prepare('PRAGMA table_info(users)').all().map(c=>c.name);
  for(const [name,type]of [['auth_provider',"TEXT NOT NULL DEFAULT 'local'"],['tb_user_id','TEXT'],['tb_tenant_id','TEXT'],['tb_customer_id','TEXT'],['tb_authority','TEXT']])if(!columns.includes(name))db.exec(`ALTER TABLE users ADD COLUMN ${name} ${type}`);
  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_tb_id ON users(tb_user_id) WHERE tb_user_id IS NOT NULL; CREATE TABLE IF NOT EXISTS tb_sessions(token TEXT PRIMARY KEY REFERENCES sessions(token) ON DELETE CASCADE,access_token TEXT NOT NULL,refresh_token TEXT NOT NULL,access_expires INTEGER NOT NULL);');
@@ -28,7 +29,52 @@ function createThingsBoardAuth(filename,options={}){
  const expiration=token=>{try{const e=JSON.parse(Buffer.from(token.split('.')[1],'base64url')).exp;return Number.isFinite(e)?e*1000:Date.now()+30000}catch{return Date.now()+30000}};
  const cookie=(res,value,age)=>res.setHeader('Set-Cookie',`noise_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${age}${(process.env.COOKIE_SECURE==='true'||process.env.NODE_ENV==='production')?'; Secure':''}`);
  function revoke(id){store.revoke(id)}
- async function upsert(remote,proof){
+ function connectionRefs(remote){
+  const saved=remote.additionalInfo?.nasV2?.deviceConnections;if(saved===undefined)return null;
+  if(!Array.isArray(saved)||saved.length>200)throw error(503,'Invalid saved ThingsBoard device list.');
+  const refs=saved.map(d=>{if(!d||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(d.id)||typeof d.name!=='string'||!d.name.trim()||d.name.length>120||typeof d.location!=='string'||d.location.length>200||/[<>"']/.test(d.name+d.location))throw error(503,'Invalid saved device details.');return {id:d.id,name:d.name.trim(),location:d.location}});
+  return [...new Map(refs.map(d=>[d.id,d])).values()].sort((a,b)=>a.id.localeCompare(b.id));
+ }
+ async function connectionLock(id,fn){const previous=connectionLocks.get(id)||Promise.resolve();const pending=previous.catch(()=>{}).then(fn);connectionLocks.set(id,pending);try{return await pending}finally{if(connectionLocks.get(id)===pending)connectionLocks.delete(id)}}
+ async function writeConnections(remote,refs){
+  const patch={...remote,additionalInfo:{...(remote.additionalInfo||{}),nasV2:{...(remote.additionalInfo?.nasV2||{}),deviceConnections:refs,deviceConnectionsVersion:1}}};
+  const expected=connectionRefs(patch);await client.serviceIdentity();
+  const saved=await client.request('/api/user?sendActivationMail=false',{method:'POST',service:true,body:patch});
+  if(saved.id?.id!==remote.id.id||saved.tenantId?.id!==remote.tenantId.id||saved.customerId?.id!==remote.customerId?.id||saved.authority!==remote.authority)throw error(503,'Cloud device-list identity mismatch.');
+  const check=await client.request('/api/user/'+remote.id.id,{service:true});if(JSON.stringify(connectionRefs(check))!==JSON.stringify(expected))throw error(502,'ThingsBoard device-list readback did not match.');return expected;
+ }
+ async function recoverConnections(remote,token){
+  if(!token||remote.authority!=='CUSTOMER_USER')return [];
+  const groups=await client.request('/api/entityGroups/USER/'+remote.id.id,{service:true}),refs=[];
+  for(const entry of groups.slice(0,200)){
+   const id=typeof entry==='string'?entry:typeof entry.id==='string'?entry.id:entry.id?.id;if(!id)continue;
+   let group;try{group=await client.request('/api/entityGroup/'+id,{service:true})}catch(e){if(e.upstreamStatus===404)continue;throw e}
+   if(group.type!=='USER'||group.ownerId?.id!==remote.customerId?.id||group.additionalInfo?.nasV2Managed!==true)continue;
+   const prefixes=['NAS Owner '+remote.id.id+' ','NAS Device Owner '],prefix=prefixes.find(p=>group.name?.startsWith(p));if(!prefix)continue;const deviceId=group.name.slice(prefix.length);if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(deviceId))continue;
+   try{const device=await client.request('/api/device/'+deviceId,{token});if(device.tenantId?.id!==remote.tenantId.id)continue;refs.push({id:deviceId,name:String(device.label||device.name||'Device').slice(0,120),location:''})}catch(e){if(e.status!==403&&e.status!==404)throw e}
+  }
+  return [...new Map(refs.map(d=>[d.id,d])).values()];
+ }
+ async function restoreConnections(remote,local,token){
+  if(!deviceStore)return;let refs=connectionRefs(remote);
+  if(refs===null){
+   refs=await connectionLock(remote.id.id,async()=>{const fresh=await client.request('/api/user/'+remote.id.id,{service:true});const saved=connectionRefs(fresh);if(saved!==null)return saved;const cached=deviceStore.migration(local);return await writeConnections(fresh,cached.length?cached:await recoverConnections(fresh,token))});
+  }
+  deviceStore.restore(local,refs);
+ }
+ async function saveConnectionChange(req,action,device){
+  const signed=await validate(req);return connectionLock(signed.thingsboardUserId,async()=>{
+   const remote=await client.identity(await accessToken(hashFor(req))),local=localUser(signed.id);let refs=connectionRefs(remote)??deviceStore.migration(local);
+   if(action==='remove')refs=refs.filter(d=>d.id!==device.id);else refs=[...refs.filter(d=>d.id!==device.id),{id:device.id,name:device.name,location:device.location||''}];
+   const saved=await writeConnections(remote,refs);deviceStore.restore(local,saved);return saved;
+  });
+ }
+ async function persistAssignedConnections(req,target,refs){
+  const actor=await validate(req);if(actor.role!=='admin')throw error(403,'Administrator access required');
+  const remote=await client.request('/api/user/'+target.tb_user_id,{service:true});if(remote.tenantId?.id!==await client.expectedTenant()||remote.id?.id!==target.tb_user_id)throw error(403,'Cloud identity mismatch');
+  return connectionLock(remote.id.id,async()=>{const saved=await writeConnections(remote,refs);deviceStore?.restore(target,saved);return saved});
+ }
+ async function upsert(remote,proof,token){
   const mapped=db.prepare('SELECT * FROM users WHERE tb_user_id=?').get(remote.id.id),email=remote.email.trim().toLowerCase();let local=mapped||db.prepare('SELECT * FROM users WHERE email=?').get(email);
   if(local&&!mapped&&local.auth_provider==='local'){
    const candidate=proof?await derive(proof,local.salt,64):null;
@@ -38,14 +84,14 @@ function createThingsBoardAuth(filename,options={}){
   const name=[remote.firstName,remote.lastName].filter(Boolean).join(' ').trim()||email,avatar=remote.additionalInfo?.nasV2?.avatar||null;
   if(local){db.prepare('UPDATE users SET name=?,email=?,role=?,avatar=?,auth_provider=?,tb_user_id=?,tb_tenant_id=?,tb_customer_id=?,tb_authority=? WHERE id=?').run(name,email,role(remote),avatar,'thingsboard',remote.id.id,remote.tenantId.id,remote.customerId?.id||null,remote.authority,local.id);}
   else{const id='tb_'+remote.id.id;db.prepare('INSERT INTO users(id,name,email,salt,hash,role,avatar,auth_provider,tb_user_id,tb_tenant_id,tb_customer_id,tb_authority) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run(id,name,email,'','',role(remote),avatar,'thingsboard',remote.id.id,remote.tenantId.id,remote.customerId?.id||null,remote.authority);local={id};}
-  return localUser(local.id);
+  const savedLocal=localUser(local.id);await restoreConnections(remote,savedLocal,token);return savedLocal;
  }
  function establish(req,res,u,tokens){if(!tokens?.token||!tokens?.refreshToken)throw error(503,'ThingsBoard did not return a complete token pair.');const opaque=randomBytes(32).toString('hex'),hash=digest(opaque);db.exec('BEGIN');try{db.prepare('DELETE FROM sessions WHERE token=? OR expires<=?').run(hashFor(req),Date.now());db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(hash,u.id,Date.now()+ttl);db.prepare('INSERT INTO tb_sessions VALUES(?,?,?,?)').run(hash,encrypt(tokens.token),encrypt(tokens.refreshToken),expiration(tokens.token));db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}cookie(res,opaque,ttl/1000);return hash}
  async function accessToken(hash){let s=rowFor(hash);if(!s)throw error(401,'Sign in with your ThingsBoard account.');
   if(s.access_expires>Date.now()+30000)return sessionSecret(s.access_token,hash);
   if(!refreshing.has(hash))refreshing.set(hash,(async()=>{try{const pair=await client.request('/api/auth/token',{method:'POST',body:{refreshToken:sessionSecret(s.refresh_token,hash)}});if(!pair?.token||!pair.refreshToken)throw error(401,'ThingsBoard session expired. Sign in again.');db.prepare('UPDATE tb_sessions SET access_token=?,refresh_token=?,access_expires=? WHERE token=?').run(encrypt(pair.token),encrypt(pair.refreshToken),expiration(pair.token),hash);return pair.token}catch(e){if(e.status===401||e.status===403){db.prepare('DELETE FROM sessions WHERE token=?').run(hash);throw error(401,'ThingsBoard session expired. Sign in again.')}throw e}finally{refreshing.delete(hash)}})());return refreshing.get(hash);
  }
- async function validateHash(hash){const token=await accessToken(hash);let remote;try{remote=await client.identity(token)}catch(e){if(e.status===401||e.status===403)db.prepare('DELETE FROM sessions WHERE token=?').run(hash);throw e}const s=rowFor(hash);if(!s||localUser(s.user_id)?.tb_user_id!==remote.id.id)throw error(401,'Session identity changed. Sign in again.');return publicUser(await upsert(remote));}
+ async function validateHash(hash){const token=await accessToken(hash);let remote;try{remote=await client.identity(token)}catch(e){if(e.status===401||e.status===403)db.prepare('DELETE FROM sessions WHERE token=?').run(hash);throw e}const s=rowFor(hash);if(!s||localUser(s.user_id)?.tb_user_id!==remote.id.id)throw error(401,'Session identity changed. Sign in again.');return publicUser(await upsert(remote,undefined,token));}
  const validate=req=>validateHash(hashFor(req));
  async function requestAsHash(hash,route,options={}){const token=await accessToken(hash);try{return await client.request(route,{...options,token})}catch(e){if(e.status===401){db.prepare('DELETE FROM sessions WHERE token=?').run(hash);throw error(401,'ThingsBoard session expired. Sign in again.')}if(e.status===403)throw error(403,'ThingsBoard has not granted your account access to this device or operation.');throw e}}
  function apiRequest(route,options={}){const scope=context.getStore();return scope?.hash?requestAsHash(scope.hash,route,options):client.request(route,{...options,service:true})}
@@ -121,25 +167,25 @@ function createThingsBoardAuth(filename,options={}){
    if(route==='register'){
     if(b.confirmPassword!==b.password)throw error(400,'Passwords do not match.');if(b.role||b.authority||b.customerId||b.tenantId)throw error(400,'Account privileges are assigned by the server.');const name=typeof b.name==='string'?b.name.trim():'';if(name.length<2||name.length>80||/[<>]/.test(name))throw error(400,'Enter a valid name.');
     const existing=db.prepare('SELECT * FROM users WHERE email=?').get(email);if(existing?.auth_provider==='thingsboard')throw error(409,'Email already registered.');if(existing?.auth_provider==='local'){const proof=await derive(b.password,existing.salt,64);if(!timingSafeEqual(proof,Buffer.from(existing.hash,'hex')))throw error(409,'A legacy account exists. Use its current password to migrate or ask the administrator to link it.');}
-    const result=await client.register({name,email,password:b.password}),local=await upsert(result.user,b.password);if(result.registrationGroupId)db.prepare('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)').run('cloud-registration-group:'+result.user.id.id,result.registrationGroupId);establish(req,res,local,result.tokens);send(201,{user:publicUser(local),provider:'thingsboard',activated:true});return true;
+    const result=await client.register({name,email,password:b.password}),local=await upsert(result.user,b.password,result.tokens.token);if(result.registrationGroupId)db.prepare('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)').run('cloud-registration-group:'+result.user.id.id,result.registrationGroupId);establish(req,res,local,result.tokens);send(201,{user:publicUser(local),provider:'thingsboard',activated:true});return true;
    }
    let tokens;try{tokens=await client.request('/api/auth/login',{method:'POST',body:{username:email,password:b.password}})}catch(e){if(e.status===401)throw error(401,'Email or ThingsBoard password is incorrect. Legacy accounts must be migrated first.');throw e}
-   const remote=await client.identity(tokens.token),local=await upsert(remote,b.password);establish(req,res,local,tokens);send(200,{user:publicUser(local),provider:'thingsboard'});return true;
+   const remote=await client.identity(tokens.token),local=await upsert(remote,b.password,tokens.token);establish(req,res,local,tokens);send(200,{user:publicUser(local),provider:'thingsboard'});return true;
   }
   if(route==='reset-password'){
    // Existing NAS recovery hashes cannot authorize changes to a cloud password.
    if(!b.resetToken||!validPassword(b.password))throw error(400,'Use a ThingsBoard-issued reset token. Legacy NAS recovery codes apply only to the preserved local provider.');const result=await client.request('/api/noauth/resetPassword',{method:'POST',body:{resetToken:b.resetToken,password:b.password}});let resetUser;if(result?.token)resetUser=await client.identity(result.token);else{let pair;try{pair=await client.request('/api/auth/login',{method:'POST',body:{username:email,password:b.password}});resetUser=await client.identity(pair.token)}catch{throw error(400,'The password was reset in ThingsBoard. Sign in with the email belonging to the reset token.')}}const local=db.prepare('SELECT id FROM users WHERE tb_user_id=?').get(resetUser.id.id);if(local)revoke(local.id);send(200,{message:'ThingsBoard password reset. Sign in with your new password.'});return true;
   }
   const u=await validate(req),hash=hashFor(req),remote=await client.identity(await accessToken(hash));
-  if(route==='password'){if(!validPassword(b.newPassword)||typeof b.currentPassword!=='string'||!b.currentPassword||b.currentPassword.length>256)throw error(400,'Check current and new passwords.');try{await requestAsHash(hash,'/api/auth/changePassword',{method:'POST',body:{currentPassword:b.currentPassword,newPassword:b.newPassword}})}catch(e){if(e.status===403)throw error(403,'Your ThingsBoard role lacks PROFILE WRITE for password changes. Ask a tenant administrator.');throw e}const pair=await client.request('/api/auth/login',{method:'POST',body:{username:remote.email,password:b.newPassword}});revoke(u.id);const local=await upsert(await client.identity(pair.token));establish(req,res,local,pair);send(200,{user:publicUser(local)});return true}
+  if(route==='password'){if(!validPassword(b.newPassword)||typeof b.currentPassword!=='string'||!b.currentPassword||b.currentPassword.length>256)throw error(400,'Check current and new passwords.');try{await requestAsHash(hash,'/api/auth/changePassword',{method:'POST',body:{currentPassword:b.currentPassword,newPassword:b.newPassword}})}catch(e){if(e.status===403)throw error(403,'Your ThingsBoard role lacks PROFILE WRITE for password changes. Ask a tenant administrator.');throw e}const pair=await client.request('/api/auth/login',{method:'POST',body:{username:remote.email,password:b.newPassword}});revoke(u.id);const local=await upsert(await client.identity(pair.token),undefined,pair.token);establish(req,res,local,pair);send(200,{user:publicUser(local)});return true}
   if(route==='profile'||route==='avatar'){
    const patch={...remote,additionalInfo:{...(remote.additionalInfo||{})}};
    if(route==='profile'){const name=typeof b.name==='string'?b.name.trim():'';const conflict=db.prepare('SELECT id FROM users WHERE email=? AND id<>?').get(email,u.id);if(conflict)throw error(409,'This email belongs to another preserved NAS identity.');if(!name||name.length>80||/[<>]/.test(name)||!validateEmail(email))throw error(400,'Check name and email.');if(email!==remote.email){let proof;try{proof=await client.request('/api/auth/login',{method:'POST',body:{username:remote.email,password:b.currentPassword}})}catch{throw error(401,'Enter the current ThingsBoard password to change email.')}const verified=await client.identity(proof.token);if(verified.id.id!==remote.id.id)throw error(401,'Account proof failed.');}patch.firstName=name;patch.lastName='';patch.email=email;
    }else{if(b.avatar!==null&&(typeof b.avatar!=='string'||b.avatar.length>450000||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(b.avatar)))throw error(400,'Invalid profile image.');patch.additionalInfo.nasV2={...(patch.additionalInfo.nasV2||{}),avatar:b.avatar};}
-   const saved=await client.request('/api/user?sendActivationMail=false',{method:'POST',service:true,body:patch});if(saved.id.id!==remote.id.id||saved.authority!==remote.authority||saved.tenantId.id!==remote.tenantId.id)throw error(403,'Cloud profile identity mismatch.');const local=await upsert(saved);send(200,{user:publicUser(local)});return true;
+   const saved=await client.request('/api/user?sendActivationMail=false',{method:'POST',service:true,body:patch});if(saved.id.id!==remote.id.id||saved.authority!==remote.authority||saved.tenantId.id!==remote.tenantId.id)throw error(403,'Cloud profile identity mismatch.');const local=await upsert(saved,undefined,await accessToken(hash));send(200,{user:publicUser(local)});return true;
   }
   if(route==='recovery-code')throw error(409,'Cloud passwords require ThingsBoard recovery. NAS recovery codes remain available only in the legacy provider.');throw error(404,'Unknown authentication route');
  }
- return {provider:'thingsboard',db,user,validate,handle,publicUser,revoke,apiRequest,runRequest,runForUser,scopeId,client,requestAsHash,assignDevices,createCustomerDevice,connectCustomerDevice:(req,id)=>createCustomerDevice(req,'',id),enableDeviceSettings:(req,id)=>createCustomerDevice(req,'',id,true),recovery:()=>{throw error(409,'Use ThingsBoard password recovery for cloud accounts.')}};
+ return {provider:'thingsboard',setDeviceStore:value=>{deviceStore=value},saveConnectionChange,persistAssignedConnections,connectionLabel:id=>deviceStore?.label(id),db,user,validate,handle,publicUser,revoke,apiRequest,runRequest,runForUser,scopeId,client,requestAsHash,assignDevices,createCustomerDevice,connectCustomerDevice:(req,id)=>createCustomerDevice(req,'',id),enableDeviceSettings:(req,id)=>createCustomerDevice(req,'',id,true),recovery:()=>{throw error(409,'Use ThingsBoard password recovery for cloud accounts.')}};
 }
 module.exports={createThingsBoardAuth};
