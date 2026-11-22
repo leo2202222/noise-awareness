@@ -76,7 +76,7 @@ function createThingsBoardAuth(filename,options={}){
   group.members=desired;db.prepare('UPDATE app_meta SET value=? WHERE key=?').run(JSON.stringify(group),key);
   if(desired.length&&!group.permission){const permission=await invoke('/api/groupPermission',{userGroupId:{id:group.userGroup,entityType:'ENTITY_GROUP'},entityGroupId:{id:group.deviceGroup,entityType:'ENTITY_GROUP'},roleId:{id:group.role,entityType:'ROLE'}});group.permission=permission.id.id;db.prepare('UPDATE app_meta SET value=? WHERE key=?').run(JSON.stringify(group),key);}
  }
- async function createCustomerDevice(req,name,existingId){
+ async function createCustomerDevice(req,name,existingId,writeAttributes=false){
   const user=await validate(req),target=localUser(user.id);
   if(target.tb_authority!=='CUSTOMER_USER'||!target.tb_customer_id)throw error(403,'Customer account required.');
   if(process.env.THINGSBOARD_GROUP_SHARING!=='true')throw error(409,'Customer device creation requires Cloud entity-group sharing.');
@@ -94,16 +94,16 @@ function createThingsBoardAuth(filename,options={}){
    };
    const suffix=target.tb_user_id+' '+device.id.id;
    const userGroup=await group('USER','NAS Owner '+suffix);
-   const deviceGroup=await group('DEVICE','NAS Device '+suffix);
+   const deviceGroup=await group('DEVICE',(writeAttributes?'NAS Settings Device ':'NAS Device ')+suffix);
    await post('/api/entityGroup/'+userGroup.id.id+'/addEntities',[target.tb_user_id]);
    await post('/api/entityGroup/'+deviceGroup.id.id+'/addEntities',[device.id.id]);
    const grants=await client.request('/api/userGroup/'+userGroup.id.id+'/groupPermissions',{service:true});
    if(!grants.some(p=>p.entityGroupId?.id===deviceGroup.id.id)){
-    const readRole=record('role',await post('/api/role',{name:'NAS Read '+device.id.id+' '+randomBytes(8).toString('hex'),type:'GROUP',permissions:['READ','READ_ATTRIBUTES','READ_TELEMETRY']}));
+    const readRole=record('role',await post('/api/role',{name:(writeAttributes?'NAS Settings ':'NAS Read ')+device.id.id+' '+randomBytes(8).toString('hex'),type:'GROUP',permissions:['READ','READ_ATTRIBUTES','READ_TELEMETRY',...(writeAttributes?['WRITE_ATTRIBUTES']:[])]}));
     record('groupPermission',await post('/api/groupPermission',{userGroupId:{id:userGroup.id.id,entityType:'ENTITY_GROUP'},entityGroupId:{id:deviceGroup.id.id,entityType:'ENTITY_GROUP'},roleId:{id:readRole.id.id,entityType:'ROLE'}}));
    }
    await requestAsHash(hashFor(req),'/api/plugins/telemetry/DEVICE/'+device.id.id+'/values/timeseries?keys=sound_db');
-   const resourceKey=(existingId?'cloud-connected-device:'+target.tb_user_id+':':'cloud-created-device:')+device.id.id;let priorResources=[];try{priorResources=JSON.parse(db.prepare('SELECT value FROM app_meta WHERE key=?').get(resourceKey)?.value||'{}').resources||[]}catch{}const resources=[...new Map([...priorResources,...owned].map(r=>[r.kind+':'+r.id,r])).values()];
+   const resourceKey=(writeAttributes?'cloud-settings-device:'+target.tb_user_id+':':existingId?'cloud-connected-device:'+target.tb_user_id+':':'cloud-created-device:')+device.id.id;let priorResources=[];try{priorResources=JSON.parse(db.prepare('SELECT value FROM app_meta WHERE key=?').get(resourceKey)?.value||'{}').resources||[]}catch{}const resources=[...new Map([...priorResources,...owned].map(r=>[r.kind+':'+r.id,r])).values()];
    db.prepare('INSERT INTO app_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(resourceKey,JSON.stringify({userId:target.tb_user_id,resources}));
    return device;
   }catch(e){if(e.operation){let detail=String(e.remoteMessage||'').slice(0,300);for(const secret of [process.env.THINGSBOARD_API_KEY,process.env.THINGSBOARD_ADMIN_API_KEY])if(secret)detail=detail.replaceAll(secret,'[redacted]');console.error('Device connection failed:',JSON.stringify({operation:e.operation,status:e.upstreamStatus,detail}));if(e.upstreamStatus===400)e.message=e.operation==='/api/device'&&/already|exist|duplicate/i.test(detail)?'A device with this name already exists. Enter its Device ID to connect it.':'ThingsBoard rejected the connection setup. Please retry; the existing device has not been deleted.';else if(e.upstreamStatus===404)e.message='ThingsBoard could not find the device or a required API resource.';else if(e.upstreamStatus===429)e.message='ThingsBoard request limit reached. Please try again later.';}const failed=[];for(const item of owned.reverse())try{await client.request('/api/'+item.kind+'/'+item.id,{method:'DELETE',service:true})}catch{failed.push(item)}if(failed.length)db.prepare('INSERT OR REPLACE INTO app_meta(key,value) VALUES(?,?)').run('cloud-device-cleanup:'+Date.now(),JSON.stringify(failed));throw e}
@@ -140,6 +140,6 @@ function createThingsBoardAuth(filename,options={}){
   }
   if(route==='recovery-code')throw error(409,'Cloud passwords require ThingsBoard recovery. NAS recovery codes remain available only in the legacy provider.');throw error(404,'Unknown authentication route');
  }
- return {provider:'thingsboard',db,user,validate,handle,publicUser,revoke,apiRequest,runRequest,runForUser,scopeId,client,requestAsHash,assignDevices,createCustomerDevice,connectCustomerDevice:(req,id)=>createCustomerDevice(req,'',id),recovery:()=>{throw error(409,'Use ThingsBoard password recovery for cloud accounts.')}};
+ return {provider:'thingsboard',db,user,validate,handle,publicUser,revoke,apiRequest,runRequest,runForUser,scopeId,client,requestAsHash,assignDevices,createCustomerDevice,connectCustomerDevice:(req,id)=>createCustomerDevice(req,'',id),enableDeviceSettings:(req,id)=>createCustomerDevice(req,'',id,true),recovery:()=>{throw error(409,'Use ThingsBoard password recovery for cloud accounts.')}};
 }
 module.exports={createThingsBoardAuth};

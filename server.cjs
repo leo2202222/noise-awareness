@@ -23,13 +23,22 @@ function classificationAt(series,ts){
  for(const {key,points}of series){let left=0,right=points.length-1,index=-1;while(left<=right){const mid=(left+right)>>1;if(Number(points[mid].ts)<=ts){index=mid;left=mid+1}else right=mid-1}if(index>=0&&ts-Number(points[index].ts)<=2000)return {type:soundType(points[index].value),key,ts:Number(points[index].ts)}}
  return {type:'Unknown',key:null,ts:null};
 }
+function recordedPointAtOrBefore(points,ts){let left=0,right=points.length-1,index=-1;while(left<=right){const mid=(left+right)>>1;if(Number(points[mid].ts)<=ts){index=mid;left=mid+1}else right=mid-1}return index<0?null:points[index]}
 function historyEvents(history,deviceId=id,deviceName=process.env.THINGSBOARD_DEVICE_NAME||'NAS 01') {
-  const classifications=classificationSeries(history);
+  const classifications=classificationSeries(history),limits=(history.noise_limit||[]).filter(p=>Number.isFinite(Number(p.ts))).slice().sort((a,b)=>Number(a.ts)-Number(b.ts));
   const indexed=Object.fromEntries(keys.map(k=>[k,new Map((history[k]||[]).map(p=>[Number(p.ts),p.value]))]));
   return (history.sound_db||[]).filter(p=>number(p.value)!==null).map(p=>{
-    const ts=Number(p.ts),get=k=>indexed[k].get(ts),classification=classificationAt(classifications,ts);
-    return {ts,deviceId,deviceName,soundType:classification.type,soundClassKey:classification.key,soundClassTs:classification.ts,approximateSoundLevel:number(p.value),presence:get('presence')==null?null:bool(get('presence')),alertStatus:bool(get('alert'))==null?'Unknown':bool(get('alert'))?'Alert':'Normal',modelConfidence:number(get('confidence')),durationMs:null,reason:'Recorded ThingsBoard telemetry sample. Duration is not recorded; classification uses a prior sample within 2 seconds, while other fields require the same timestamp.'};
+    const ts=Number(p.ts),get=k=>indexed[k].get(ts),classification=classificationAt(classifications,ts),limitPoint=recordedPointAtOrBefore(limits,ts),noiseLimit=number(limitPoint?.value),hasLimit=noiseLimit!==null&&noiseLimit>=0&&noiseLimit<=140,deviceAlertStatus=bool(get('alert'))==null?'Unknown':bool(get('alert'))?'Alert':'Normal',alertStatus=hasLimit?(number(p.value)>=noiseLimit?'Alert':'Normal'):deviceAlertStatus;
+    return {ts,deviceId,deviceName,soundType:classification.type,soundClassKey:classification.key,soundClassTs:classification.ts,approximateSoundLevel:number(p.value),presence:get('presence')==null?null:bool(get('presence')),alertStatus,deviceAlertStatus,alertSource:hasLimit?'historical-noise-limit':'device-alert',noiseLimit:hasLimit?noiseLimit:null,noiseLimitTs:hasLimit?Number(limitPoint.ts):null,modelConfidence:number(get('confidence')),durationMs:null,reason:hasLimit?'Recorded sound level compared with noise_limit recorded at that time. Duration is not recorded.':'Recorded device alert; no historical noise_limit available. Duration is not recorded.'};
   }).sort((a,b)=>b.ts-a.ts);
+}
+function soundMoments(records){
+ const ordered=[...new Map(records.filter(r=>Number.isFinite(Number(r.ts))).map(r=>[r.deviceId+':'+r.ts,r])).values()].sort((a,b)=>a.ts-b.ts),result=[];let active=null;
+ for(const record of ordered){
+  if(!active||active.deviceId!==record.deviceId||active.soundType!==record.soundType||record.ts-active.lastSampleTs>30000){active={...record,source:'observed-sound-event',lastSampleTs:record.ts,endTs:null,durationMs:null,sampleCount:1};result.push(active)}
+  else{active.lastSampleTs=record.ts;active.endTs=record.ts;active.durationMs=record.ts-active.ts;active.sampleCount++}
+ }
+ return result.sort((a,b)=>b.ts-a.ts);
 }
 function alertIncidents(records){
  const sorted=[...records].sort((a,b)=>a.ts-b.ts),result=[];let active=null,previous=null;
@@ -79,6 +88,7 @@ async function snapshot(deviceId=id) {
     devices:[{...configured,...connectivity,updated:ts?new Date(ts).toLocaleString('en-GB',{timeZone:'Asia/Bangkok'}):'No telemetry'}],
     events:soundRecords,
     soundRecords,
+    soundMoments:soundMoments(soundRecords),
     alertRecords:soundRecords.filter(record=>record.alertStatus==='Alert'),
     incidents:alertIncidents(soundRecords),
     historyInfo:{days:49,limitPerKey:20000,refreshedAt:historyCaches.get((auth.scopeId?auth.scopeId():'service')+'|'+prefix)?.at||now,possiblyTruncated:Object.values(history).some(points=>points.length>=20000)},
@@ -123,4 +133,4 @@ const server=http.createServer((req,res)=>{const task=()=>handleRequest(req,res)
 let pushTimer;server.on('listening',()=>{if(require.main===module){pushTimer=setInterval(()=>push.poll().catch(()=>{}),15000);pushTimer.unref();push.poll().catch(()=>{})}});
 server.on('close',()=>{clearInterval(pushTimer);auth.db.close()});
 if(require.main===module) server.listen(Number(process.env.PORT || 3000),process.env.HOST || '127.0.0.1',()=>console.log(`Open http://localhost:${process.env.PORT || 3000}`));
-module.exports={server,snapshot,historyEvents,alertIncidents,bool,deviceStatus,auth,platform,push};
+module.exports={server,snapshot,historyEvents,alertIncidents,soundMoments,bool,deviceStatus,auth,platform,push};
