@@ -1,6 +1,6 @@
 ﻿'use strict';
 // Local administrator tool: no password/hash export and no automatic cloud writes.
-const {createThingsBoardAuth}=require('../auth-thingsboard.cjs');
+const {createThingsBoardAuth}=require('../backend/auth-thingsboard.cjs');
 const action=process.argv[2]||'--list',auth=createThingsBoardAuth(process.env.AUTH_DB_PATH);
 (async()=>{
  if(action==='--list'){console.log(JSON.stringify(auth.db.prepare('SELECT id,name,email,role,auth_provider AS provider,tb_user_id AS thingsboardUserId FROM users ORDER BY rowid').all(),null,2));console.log('Legacy password hashes are preserved; they cannot be converted into ThingsBoard passwords.');return;}

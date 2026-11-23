@@ -2,7 +2,7 @@
 // Explicit opt-in integration test: creates only tagged, temporary cloud resources.
 const assert=require('node:assert/strict'),{randomBytes}=require('node:crypto');
 process.env.AUTH_PROVIDER='thingsboard';process.env.AUTH_DB_PATH=':memory:';
-const {createThingsBoardClient}=require('../thingsboard-client.cjs');
+const {createThingsBoardClient}=require('../backend/thingsboard-client.cjs');
 const client=createThingsBoardClient(),nativeFetch=global.fetch,tag='NAS-AUTH-CHECK-'+Date.now()+'-'+randomBytes(3).toString('hex');
 const owned=[],results=[];let localServer;
 const record=(type,id)=>{owned.push({type,id});return id};

@@ -32,7 +32,7 @@ const {server,snapshot,historyEvents,alertIncidents,soundMoments,bool}=require('
  ctx.liveSnapshot.threshold=null;vm.runInContext('chart=soundJourneyChart()',ctx);assert.ok(ctx.chart.includes('Threshold not received'));assert.ok(!ctx.chart.includes('72 dB'));
  const adapter={window:{},fetch:async()=>({ok:false,status:401}),AbortSignal};vm.createContext(adapter);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../dist/assets/js/thingsboard-adapter.js'),'utf8'),adapter);await assert.rejects(new adapter.window.ThingsBoardAdapter({baseUrl:'/api/thingsboard'}).getSnapshot(),e=>e.status===401);
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
- for(const p of ['/.env','/data/auth.sqlite','/server.cjs','/assets/js/mock-data.js'])assert.equal((await nativeFetch(base+p)).status,404,p);
+ for(const p of ['/.env','/data/auth.sqlite','/server.cjs','/backend/server.cjs','/backend/auth-thingsboard.cjs','/config/.env.example','/assets/js/mock-data.js'])assert.equal((await nativeFetch(base+p)).status,404,p);
  assert.equal((await nativeFetch(base+'/api/thingsboard/snapshot')).status,401);
  const registered=await nativeFetch(base+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Audit User',email:'audit@example.com',password:'isolated-password'})});assert.equal(registered.status,201);const cookie=registered.headers.get('set-cookie').split(';')[0];
  const live=await nativeFetch(base+'/api/thingsboard/snapshot',{headers:{Cookie:cookie}});assert.equal(live.status,200);assert.ok(!(await live.text()).includes('isolated-test-key'));

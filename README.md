@@ -1,8 +1,10 @@
 # Noise Awareness System — ThingsBoard authentication
 
+เริ่มอธิบายโปรเจกต์จาก [แผนผังไฟล์และแนวตอบคำถาม](docs/PROJECT_GUIDE_TH.md) หรือเลือกคู่มือจาก [docs/README.md](docs/README.md)
+
 บัญชีหลักใช้ ThingsBoard Cloud ผ่าน Node backend; หน้าเว็บและระบบ IoT เดิมยังใช้งานต่อ บัญชี SQLite เดิมเก็บไว้สำหรับย้ายและ rollback
 
-เริ่มที่ [START_HERE_TH.md](START_HERE_TH.md) และอ่านรายงาน [การย้ายบัญชีและผลทดสอบ](docs/AUTH_THINGSBOARD_MIGRATION.md)
+เริ่มที่ [START_HERE_TH.md](docs/START_HERE_TH.md) และอ่านรายงาน [การย้ายบัญชีและผลทดสอบ](docs/AUTH_THINGSBOARD_MIGRATION.md)
 
 - สมัครสมาชิกผ่าน activation/password setup จริงของ ThingsBoard ผู้สมัครเป็น Viewer และไม่มีสิทธิ์ดูอุปกรณ์อัตโนมัติ
 - Login ด้วยบัญชี ThingsBoard; Tenant Administrator เป็น NAS Admin; Customer User เป็น Viewer
@@ -15,7 +17,7 @@
 
 ## รันบน Windows
 
-Node.js 24: เปิด Terminal ในโฟลเดอร์นี้ แล้ว `npm.cmd ci --omit=dev`, คัดลอก `.env.example` เป็น `.env` เฉพาะเครื่องใหม่ ตั้งค่าตามคู่มือ และ `npm.cmd start`
+Node.js 24: เปิด Terminal ในโฟลเดอร์นี้ แล้ว `npm.cmd ci --omit=dev`, คัดลอก `config/.env.example` เป็น `.env` เฉพาะเครื่องใหม่ ตั้งค่าตามคู่มือ และ `npm.cmd start`
 เปิด http://127.0.0.1:3000/auth.html ห้ามใช้ Live Server พอร์ต 5500 แทน backend
 
 ## ทดสอบและแพ็ก
@@ -26,3 +28,13 @@ Tests เหล่านี้ใช้ข้อมูลแยกและ mock
 `powershell -ExecutionPolicy Bypass -File scripts/package.ps1` สร้าง ../noise-awareness.zip มีโฟลเดอร์เดียว ไม่รวม .env, data, node_modules และผลทดสอบ
 
 เครื่องใช้งานจริงต้องใช้ HTTPS, NODE_ENV=production, COOKIE_SECURE=true และเก็บ data/tb-session.key หรือ SESSION_ENCRYPTION_KEY พร้อมฐานข้อมูลเป็นความลับ
+
+## การจัดโฟลเดอร์เวอร์ชันล่าสุด
+
+- backend/ รวมโค้ด Node.js ทั้งหมด
+- config/.env.example เป็นตัวอย่าง environment ส่วน .env จริงยังอยู่หน้าหลักและไม่ขึ้น GitHub
+- dist/ รวมหน้าเว็บและ assets
+- docs/ รวมคู่มือทั้งหมด เริ่มจาก docs/PROJECT_GUIDE_TH.md
+- scripts/ รวมการทดสอบและเครื่องมือ
+
+server.cjs ที่หน้าหลักเป็นตัวเริ่มโปรแกรมสั้น ๆ แล้วเรียก backend/server.cjs จึงยังใช้ Start Command `node server.cjs` บน Render และ `npm.cmd start` ในเครื่องได้เหมือนเดิม data/ เดิมยังอยู่ตำแหน่งเดิม

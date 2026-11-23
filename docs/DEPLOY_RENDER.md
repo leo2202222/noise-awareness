@@ -11,3 +11,7 @@ Choose paid compute for always-on service and attach a persistent disk mounted a
 Set VAPID_SUBJECT to the real public HTTPS URL after Render supplies it. Deploy and open the onrender.com URL. Test Login, connect/read devices, edit/disconnect, real Settings save/readback and logout. Verify DB/key survive a redeploy. Public HTTPS deployment and OS push delivery have not yet been verified by this coding session.
 
 The full shared-workspace/no-role policy is still pending explicit approval; see SHARED_WORKSPACE_REVIEW.md. Deploying does not enable that policy or fix existing Cloud permissions by itself.
+
+## Upgrading to the organized folder layout
+
+The deployment command remains node server.cjs. Upload backend/, config/, dist/, docs/, scripts/ and the root server.cjs/package files. Remove the obsolete root copies of auth.cjs, auth-local.cjs, auth-thingsboard.cjs, thingsboard-client.cjs, platform.cjs and push.cjs from GitHub after the new folders are committed; they now live in backend/. START_HERE_TH.md and PROJECT_GUIDE_TH.md moved into docs/, and .env.example moved into config/. GitHub browser uploads do not automatically remove old paths. Do not delete server.cjs at the root: it is the compatibility entry point used by Render.

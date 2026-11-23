@@ -47,14 +47,14 @@ Cloud service key ใช้ provisioning และแก้ profile ที่ wh
 | scripts/migrate-auth.cjs | list/link metadata โดยไม่ export hash/password |
 | scripts/recover-account.cjs | local recovery เท่านั้น ป้องกันอ้างว่า reset Cloud สำเร็จ |
 | scripts/check-*.cjs, fake-thingsboard.cjs | regression แยก provider, cloud mock/browser/live tests |
-| package.json, .env.example, scripts/package.ps1 | คำสั่งและแพ็กไฟล์ใหม่ ไม่รวม secrets/data |
+| package.json, config/.env.example, scripts/package.ps1 | คำสั่งและแพ็กไฟล์ใหม่ ไม่รวม secrets/data |
 | README, START_HERE_TH, docs | วิธีใช้และข้อจำกัดปัจจุบัน |
 
 ระบบเดิมถูกแยกเป็น provider ไม่ได้ลบ SQLite หรือฟีเจอร์ IoT การตั้งค่า noise_limit ยังเขียน shared attributes จริงตามสิทธิ์ Admin และตรวจ readback การแสดง History/Insights ยังใช้ข้อมูลจริงและไม่เติมช่วงข้อมูลหาย ไม่มี runtime mock ข้อมูลใน test fixtures ใช้เฉพาะการทดสอบ
 
 ## Environment และตั้งค่า Cloud
 
-ดู .env.example และ START_HERE_TH.md ทุกค่าตั้งเฉพาะ backend:
+ดู config/.env.example และ START_HERE_TH.md ทุกค่าตั้งเฉพาะ backend:
 
 | ค่า | ความหมาย |
 |---|---|
