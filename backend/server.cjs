@@ -24,12 +24,18 @@ function classificationAt(series,ts){
  return {type:'Unknown',key:null,ts:null};
 }
 function recordedPointAtOrBefore(points,ts){let left=0,right=points.length-1,index=-1;while(left<=right){const mid=(left+right)>>1;if(Number(points[mid].ts)<=ts){index=mid;left=mid+1}else right=mid-1}return index<0?null:points[index]}
+function presenceAt(points,ts,aheadMs=0){
+ const point=recordedPointAtOrBefore(points,ts+aheadMs);if(!point||ts-Number(point.ts)>30000)return {value:null,ts:null};
+ const raw=typeof point.value==='string'?point.value.trim().toLowerCase():point.value,value=raw===0||raw==='0'?false:raw===1||raw==='1'?true:bool(raw);
+ return {value,ts:Number(point.ts)};
+}
 function historyEvents(history,deviceId=id,deviceName=process.env.THINGSBOARD_DEVICE_NAME||'NAS 01') {
+  const presencePoints=(history.presence||[]).filter(p=>Number.isFinite(Number(p.ts))).slice().sort((a,b)=>Number(a.ts)-Number(b.ts));
   const classifications=classificationSeries(history),limits=(history.noise_limit||[]).filter(p=>Number.isFinite(Number(p.ts))).slice().sort((a,b)=>Number(a.ts)-Number(b.ts));
   const indexed=Object.fromEntries(keys.map(k=>[k,new Map((history[k]||[]).map(p=>[Number(p.ts),p.value]))]));
   return (history.sound_db||[]).filter(p=>number(p.value)!==null).map(p=>{
-    const ts=Number(p.ts),get=k=>indexed[k].get(ts),classification=classificationAt(classifications,ts),limitPoint=recordedPointAtOrBefore(limits,ts),noiseLimit=number(limitPoint?.value),hasLimit=noiseLimit!==null&&noiseLimit>=0&&noiseLimit<=140,deviceAlertStatus=bool(get('alert'))==null?'Unknown':bool(get('alert'))?'Alert':'Normal',alertStatus=hasLimit?(number(p.value)>=noiseLimit?'Alert':'Normal'):deviceAlertStatus;
-    return {ts,deviceId,deviceName,soundType:classification.type,soundClassKey:classification.key,soundClassTs:classification.ts,approximateSoundLevel:number(p.value),presence:get('presence')==null?null:bool(get('presence')),alertStatus,deviceAlertStatus,alertSource:hasLimit?'historical-noise-limit':'device-alert',noiseLimit:hasLimit?noiseLimit:null,noiseLimitTs:hasLimit?Number(limitPoint.ts):null,modelConfidence:number(get('confidence')),durationMs:null,reason:hasLimit?'Recorded sound level compared with noise_limit recorded at that time. Duration is not recorded.':'Recorded device alert; no historical noise_limit available. Duration is not recorded.'};
+    const ts=Number(p.ts),get=k=>indexed[k].get(ts),classification=classificationAt(classifications,ts),presence=presenceAt(presencePoints,ts),limitPoint=recordedPointAtOrBefore(limits,ts),noiseLimit=number(limitPoint?.value),hasLimit=noiseLimit!==null&&noiseLimit>=0&&noiseLimit<=140,deviceAlertStatus=bool(get('alert'))==null?'Unknown':bool(get('alert'))?'Alert':'Normal',alertStatus=hasLimit?(number(p.value)>=noiseLimit?'Alert':'Normal'):deviceAlertStatus;
+    return {ts,deviceId,deviceName,soundType:classification.type,soundClassKey:classification.key,soundClassTs:classification.ts,approximateSoundLevel:number(p.value),presence:presence.value,presenceTs:presence.ts,alertStatus,deviceAlertStatus,alertSource:hasLimit?'historical-noise-limit':'device-alert',noiseLimit:hasLimit?noiseLimit:null,noiseLimitTs:hasLimit?Number(limitPoint.ts):null,modelConfidence:number(get('confidence')),durationMs:null,reason:hasLimit?'Recorded sound level compared with noise_limit recorded at that time. Duration is not recorded.':'Recorded device alert; no historical noise_limit available. Duration is not recorded.'};
   }).sort((a,b)=>b.ts-a.ts);
 }
 function soundMoments(records){
@@ -77,14 +83,14 @@ async function snapshot(deviceId=id) {
   mergeLatestHistory(history,latest,now);
   const value = k => latest[k]?.[0]?.value;
   const ts = Number(latest.sound_db?.[0]?.ts || 0);
-  const classification=classificationAt(classificationSeries(latest),ts);
+  const classification=classificationAt(classificationSeries(latest),ts),presence=presenceAt((latest.presence||[]).filter(p=>Number.isFinite(Number(p.ts))).slice().sort((a,b)=>Number(a.ts)-Number(b.ts)),Math.max(ts,Math.min(now+5000,Number(latest.presence?.[0]?.ts)||0)));
   const savedLimit=Array.isArray(shared)?number(shared.find(a=>a.key==='noise_limit')?.value):null;
   const threshold=savedLimit??number(value('noise_limit')),level=number(value('sound_db'));
   const soundRecords=historyEvents(history,deviceId,configured.name);
   const notificationStatus=level!==null&&threshold!==null?(level>=threshold?'Alert':'Normal'):(Number(latest.alert?.[0]?.ts)===ts&&bool(value('alert'))!==null?(bool(value('alert'))?'Alert':'Normal'):'Unknown');
   return {
     threshold,thresholdSource:savedLimit!==null?'shared-attributes':'telemetry',
-    current:ts && number(value('sound_db'))!==null ? {deviceId,ts,notificationStatus,notificationSource:level!==null&&threshold!==null?'noise_limit':'device-alert',approximateSoundLevel:number(value('sound_db')),soundType:classification.type,soundClassKey:classification.key,soundClassTs:classification.ts,presence:Number(latest.presence?.[0]?.ts)===ts?bool(value('presence')):null,alertStatus:Number(latest.alert?.[0]?.ts)!==ts||bool(value('alert'))==null?'Unknown':bool(value('alert'))?'Alert':'Normal',modelConfidence:Number(latest.confidence?.[0]?.ts)===ts?number(value('confidence')):null,audioValid:Number(latest.audio_valid?.[0]?.ts)===ts?bool(value('audio_valid')):null,deviceStatus:value('device_status')} : null,
+    current:ts && number(value('sound_db'))!==null ? {deviceId,ts,notificationStatus,notificationSource:level!==null&&threshold!==null?'noise_limit':'device-alert',approximateSoundLevel:number(value('sound_db')),soundType:classification.type,soundClassKey:classification.key,soundClassTs:classification.ts,presence:presence.value,presenceTs:presence.ts,alertStatus:Number(latest.alert?.[0]?.ts)!==ts||bool(value('alert'))==null?'Unknown':bool(value('alert'))?'Alert':'Normal',modelConfidence:Number(latest.confidence?.[0]?.ts)===ts?number(value('confidence')):null,audioValid:Number(latest.audio_valid?.[0]?.ts)===ts?bool(value('audio_valid')):null,deviceStatus:value('device_status')} : null,
     devices:[{...configured,...connectivity,updated:ts?new Date(ts).toLocaleString('en-GB',{timeZone:'Asia/Bangkok'}):'No telemetry'}],
     events:soundRecords,
     soundRecords,
